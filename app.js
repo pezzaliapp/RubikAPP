@@ -1,57 +1,54 @@
-(()=>{
-const diag = document.getElementById('diag');
-const log = (...a)=>{ const s=a.join(' '); if(diag) diag.textContent += s + '\n'; console.log(...a); };
-try{
-  // Colors
-  const STICKER = { U:0xffffff, D:0xffd000, F:0x00a74a, B:0x0053d6, L:0xff6c00, R:0xd80027 };
+(function(){
+'use strict';
+var diag = document.getElementById('diag');
+function log(){ var s=[].slice.call(arguments).join(' '); if(diag) diag.textContent += s + '\n'; console.log.apply(console, arguments); }
 
-  // Stage
-  const stage = document.getElementById('stage');
-  const scene = new THREE.Scene();
+try{
+  var STICKER = { U:0xffffff, D:0xffd000, F:0x00a74a, B:0x0053d6, L:0xff6c00, R:0xd80027 };
+
+  var stage = document.getElementById('stage');
+  var scene = new THREE.Scene();
   scene.background = new THREE.Color(0x2a3142);
-  const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
-  const renderer = new THREE.WebGLRenderer({antialias:true, alpha:false});
+  var camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+  var renderer = new THREE.WebGLRenderer({antialias:true, alpha:false});
   renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, 2));
   stage.appendChild(renderer.domElement);
 
   function onResize(){
-    const w = stage.clientWidth||800, h = stage.clientHeight||600;
+    var w = stage.clientWidth||800, h = stage.clientHeight||600;
     camera.aspect = w/h; camera.updateProjectionMatrix();
     renderer.setSize(w,h);
     renderer.render(scene,camera);
-    log('resize',w,h);
+    log('resize', w, h);
   }
   window.addEventListener('resize', onResize, {passive:true});
   camera.position.set(4.2, 3.8, 5.8);
   camera.lookAt(0,0,0);
 
-  // Lights
-  scene.add(new THREE.AmbientLight(0xffffff, .9));
-  const key = new THREE.DirectionalLight(0xffffff, .8); key.position.set(4,7,6); scene.add(key);
+  scene.add(new THREE.AmbientLight(0xffffff, 0.9));
+  var key = new THREE.DirectionalLight(0xffffff, 0.8); key.position.set(4,7,6); scene.add(key);
 
-  // Helpers
-  const nearly=(a,b,eps=1e-4)=>Math.abs(a-b)<eps;
-  const snap90=(rad)=>Math.round(rad/(Math.PI/2))*(Math.PI/2);
+  function nearly(a,b){ return Math.abs(a-b)<1e-4; }
+  function snap90(rad){ return Math.round(rad/(Math.PI/2))*(Math.PI/2); }
 
-  // Build cube
-  const cubelets=[], root=new THREE.Group(); scene.add(root);
-  const size=0.98, gap=0.012;
-  const geo = new THREE.BoxGeometry(size, size, size);
+  var cubelets=[], root=new THREE.Group(); scene.add(root);
+  var size=0.98, gap=0.012;
+  var geo = new THREE.BoxGeometry(size, size, size);
 
   function makeSticker(color, axis, sign){
-    const g = new THREE.PlaneGeometry(0.965,0.965);
-    const m = new THREE.MeshBasicMaterial({ color, side:THREE.FrontSide, polygonOffset:true, polygonOffsetFactor:-2, polygonOffsetUnits:-2 });
-    const s = new THREE.Mesh(g, m);
-    const d = 0.515;
+    var g = new THREE.PlaneGeometry(0.965,0.965);
+    var m = new THREE.MeshBasicMaterial({ color: color, side: THREE.FrontSide, polygonOffset:true, polygonOffsetFactor:-2, polygonOffsetUnits:-2 });
+    var s = new THREE.Mesh(g, m);
+    var d = 0.515;
     if(axis==='x'){ s.position.x = sign*d; s.rotation.y = -sign*Math.PI/2; }
     if(axis==='y'){ s.position.y = sign*d; s.rotation.x =  sign*Math.PI/2; }
     if(axis==='z'){ s.position.z = sign*d; if(sign<0) s.rotation.y = Math.PI; }
     return s;
   }
   function addCubelet(i,j,k){
-    const base = new THREE.MeshStandardMaterial({color:0x20232c, metalness:0.1, roughness:0.6});
-    const mesh = new THREE.Mesh(geo, [base,base,base,base,base,base].map(m=>m.clone()));
-    const s = size+gap;
+    var base = new THREE.MeshStandardMaterial({color:0x20232c, metalness:0.1, roughness:0.6});
+    var mesh = new THREE.Mesh(geo, [base,base,base,base,base,base].map(function(m){ return m.clone(); }));
+    var s = size+gap;
     mesh.position.set(i*s, j*s, k*s);
     mesh.userData.coord = new THREE.Vector3(i,j,k);
     if(i=== 1) mesh.add(makeSticker(STICKER.R,'x',+1));
@@ -65,61 +62,64 @@ try{
   function buildSolved(){
     while(root.children.length) root.remove(root.children[0]);
     cubelets.length=0;
-    for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++)for(let k=-1;k<=1;k++) addCubelet(i,j,k);
-    log('Cubelets creati:', cubelets.length);
+    for(var i=-1;i<=1;i++)for(var j=-1;j<=1;j++)for(var k=-1;k<=1;k++) addCubelet(i,j,k);
+    log('Cubelets:', cubelets.length);
   }
 
-  // History / notation essenziali
-  const moveAlgEl = document.getElementById('move-alg');
-  const moveCountEl = document.getElementById('move-count');
-  let history=[], future=[], moveAlg=[], moveCount=0;
-  const pushHistory=()=>{
-    const s = cubelets.map(m=>({
+  var moveAlgEl = document.getElementById('move-alg');
+  var moveCountEl = document.getElementById('move-count');
+  var history=[], future=[], moveAlg=[], moveCount=0;
+
+  function pushHistory(){
+    var s = cubelets.map(function(m){ return {
       x:m.position.x, y:m.position.y, z:m.position.z,
       rx:m.rotation.x, ry:m.rotation.y, rz:m.rotation.z,
       cx:m.userData.coord.x, cy:m.userData.coord.y, cz:m.userData.coord.z
-    }));
+    }; });
     history.push(s); if(history.length>200) history.shift(); future.length=0;
-  };
-  const restoreState=(snap)=>{
-    cubelets.forEach((m,i)=>{
-      const s=snap[i];
+  }
+  function restoreState(snap){
+    cubelets.forEach(function(m,i){
+      var s=snap[i];
       m.position.set(s.x,s.y,s.z);
       m.rotation.set(s.rx,s.ry,s.rz);
       m.userData.coord.set(s.cx,s.cy,s.cz);
       root.attach(m);
     });
     renderer.render(scene,camera);
-  };
-  const addMoveNotation=(n)=>{ moveAlg.push(n); moveCount++; moveAlgEl.textContent=moveAlg.join(' '); moveCountEl.textContent=String(moveCount); };
+  }
+  function addMoveNotation(n){
+    moveAlg.push(n); moveCount++;
+    moveAlgEl.textContent = moveAlg.join(' ');
+    moveCountEl.textContent = String(moveCount);
+  }
 
-  // Orbit vs rotate
-  let isOrbit=false,lastX=0,lastY=0, rotating=false;
-  const orbitStart=(x,y)=>{ isOrbit=true; lastX=x; lastY=y; };
-  const orbitMove=(x,y)=>{ if(!isOrbit||rotating) return; const dx=(x-lastX)/120, dy=(y-lastY)/120; root.rotation.y+=dx; root.rotation.x+=dy; lastX=x; lastY=y; };
-  const orbitEnd=()=>{ isOrbit=false; };
+  var isOrbit=false,lastX=0,lastY=0, rotating=false;
+  function orbitStart(x,y){ isOrbit=true; lastX=x; lastY=y; }
+  function orbitMove(x,y){ if(!isOrbit||rotating) return; var dx=(x-lastX)/120, dy=(y-lastY)/120; root.rotation.y+=dx; root.rotation.x+=dy; lastX=x; lastY=y; }
+  function orbitEnd(){ isOrbit=false; }
 
-  const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
-  let press=null;
+  var ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+  var press=null;
   function hitsAt(cx,cy){
-    const r=renderer.domElement.getBoundingClientRect();
+    var r=renderer.domElement.getBoundingClientRect();
     ndc.x=((cx-r.left)/r.width)*2-1; ndc.y= -((cy-r.top)/r.height)*2+1;
     ray.setFromCamera(ndc, camera);
-    const inters = ray.intersectObjects(root.children, true);
+    var inters = ray.intersectObjects(root.children, true);
     if(!inters.length) return [];
-    const norm = inters.map(h=>{
-      let obj=h.object;
+    var norm = inters.map(function(h){
+      var obj=h.object;
       while(obj && obj.parent && obj.parent!==root){ obj = obj.parent; }
-      return {...h, object: obj};
+      var copy={}; for (var p in h){ copy[p]=h[p]; } copy.object=obj; return copy;
     });
     return norm;
   }
-  function onDown(e){ const t=e.touches?e.touches[0]:e; const h=hitsAt(t.clientX,t.clientY);
+  function onDown(e){ var t=e.touches?e.touches[0]:e; var h=hitsAt(t.clientX,t.clientY);
     if(h.length){ press={hit:h[0],x:t.clientX,y:t.clientY}; } else { orbitStart(t.clientX,t.clientY); } }
-  function onMove(e){ const t=e.touches?e.touches[0]:e;
+  function onMove(e){ var t=e.touches?e.touches[0]:e;
     if(isOrbit&&!rotating){ orbitMove(t.clientX,t.clientY); return; }
     if(!press||rotating) return;
-    const dx=t.clientX-press.x, dy=t.clientY-press.y;
+    var dx=t.clientX-press.x, dy=t.clientY-press.y;
     if(Math.hypot(dx,dy)>18){ rotateFromGesture(press.hit,dx,dy); press=null; } }
   function onUp(){ orbitEnd(); press=null; }
 
@@ -130,112 +130,138 @@ try{
   window.addEventListener('touchmove', onMove, {passive:true});
   window.addEventListener('touchend', onUp);
 
-  async function rotateLayer(axisChar, layerCoord, sign, record=true){
+  function rotateLayer(axisChar, layerCoord, sign, record){
+    if(record===undefined) record=true;
     if(rotating) return; rotating=true; if(record) pushHistory();
-    const axis = axisChar==='X' ? new THREE.Vector3(1,0,0) : axisChar==='Y' ? new THREE.Vector3(0,1,0) : new THREE.Vector3(0,0,1);
-    const picker = axisChar==='X' ? (m)=> nearly(m.userData.coord.x, layerCoord) : axisChar==='Y' ? (m)=> nearly(m.userData.coord.y, layerCoord) : (m)=> nearly(m.userData.coord.z, layerCoord);
-    const group = new THREE.Group(), layer=[];
-    cubelets.forEach(m=>{ if(picker(m)){ layer.push(m); group.attach(m); } });
+
+    var axis = axisChar==='X' ? new THREE.Vector3(1,0,0)
+             : axisChar==='Y' ? new THREE.Vector3(0,1,0)
+             : new THREE.Vector3(0,0,1);
+    var picker = axisChar==='X' ? function(m){ return nearly(m.userData.coord.x, layerCoord); }
+             : axisChar==='Y' ? function(m){ return nearly(m.userData.coord.y, layerCoord); }
+             : function(m){ return nearly(m.userData.coord.z, layerCoord); };
+    var group = new THREE.Group(), layer=[];
+    cubelets.forEach(function(m){ if(picker(m)){ layer.push(m); group.attach(m); } });
     scene.add(group);
 
-    const target=(Math.PI/2)*sign, dur=200, t0=performance.now();
-    await new Promise(res=>{
-      function anim(now){ const t=Math.min(1,(now-t0)/dur);
-        group.rotation.x = axis.x*target*t; group.rotation.y = axis.y*target*t; group.rotation.z = axis.z*target*t;
-        renderer.render(scene,camera); if(t<1) requestAnimationFrame(anim); else res(); }
-      requestAnimationFrame(anim);
-    });
+    var target=(Math.PI/2)*sign, dur=200, t0=performance.now();
+    function animate(now){
+      var t=Math.min(1,(now-t0)/dur);
+      group.rotation.x = axis.x*target*t;
+      group.rotation.y = axis.y*target*t;
+      group.rotation.z = axis.z*target*t;
+      renderer.render(scene,camera);
+      if(t<1) requestAnimationFrame(animate); else bake();
+    }
+    requestAnimationFrame(animate);
 
-    const s=size+gap;
-    layer.forEach(m=>{
-      m.applyMatrix4(group.matrix);
-      m.position.set(Math.round(m.position.x/s)*s, Math.round(m.position.y/s)*s, Math.round(m.position.z/s)*s);
-      m.userData.coord.set(Math.round(m.position.x/s), Math.round(m.position.y/s), Math.round(m.position.z/s));
-      m.rotation.x = snap90(m.rotation.x); m.rotation.y = snap90(m.rotation.y); m.rotation.z = snap90(m.rotation.z);
-    });
-    layer.forEach(m=>root.attach(m)); scene.remove(group);
-    rotating=false; renderer.render(scene,camera);
+    function bake(){
+      var s=size+gap;
+      layer.forEach(function(m){
+        m.applyMatrix4(group.matrix);
+        m.position.set(Math.round(m.position.x/s)*s, Math.round(m.position.y/s)*s, Math.round(m.position.z/s)*s);
+        m.userData.coord.set(Math.round(m.position.x/s), Math.round(m.position.y/s), Math.round(m.position.z/s));
+        m.rotation.x = snap90(m.rotation.x);
+        m.rotation.y = snap90(m.rotation.y);
+        m.rotation.z = snap90(m.rotation.z);
+      });
+      layer.forEach(function(m){ root.attach(m); }); scene.remove(group);
+      rotating=false; renderer.render(scene,camera);
+    }
   }
 
   function rotateFromGesture(hit, dx, dy){
     if(rotating) return;
-    const faceN = hit.face.normal.clone().applyMatrix3(new THREE.Matrix3().getNormalMatrix(hit.object.matrixWorld)).normalize();
-    const dom = Math.abs(dx)>Math.abs(dy)?'x':'y';
-    let axisChar, layerCoord, sign;
+    var faceN = hit.face.normal.clone().applyMatrix3(new THREE.Matrix3().getNormalMatrix(hit.object.matrixWorld)).normalize();
+    var dom = Math.abs(dx)>Math.abs(dy)?'x':'y';
+    var axisChar, layerCoord, sign;
     if(Math.abs(faceN.z)>0.9){ axisChar = (dom==='x')?'Y':'X'; }
     else if(Math.abs(faceN.x)>0.9){ axisChar = (dom==='x')?'Y':'Z'; }
     else { axisChar = (dom==='x')?'Z':'X'; }
     sign = (dom==='x')? (dx>0?1:-1) : (dy<0?1:-1);
-    const c = hit.object.userData.coord;
+    var c = hit.object.userData.coord;
     layerCoord = axisChar==='X'? c.x : axisChar==='Y'? c.y : c.z;
 
-    let notation = '?';
-    if(axisChar==='Y' && nearly(layerCoord, +1)) notation = (sign===-1)?'U':\"U'\";
-    else if(axisChar==='Y' && nearly(layerCoord, -1)) notation = (sign===+1)?'D':\"D'\";
-    else if(axisChar==='X' && nearly(layerCoord, +1)) notation = (sign===+1)?'R':\"R'\";
-    else if(axisChar==='X' && nearly(layerCoord, -1)) notation = (sign===-1)?'L':\"L'\";
-    else if(axisChar==='Z' && nearly(layerCoord, +1)) notation = (sign===+1)?'F':\"F'\";
-    else if(axisChar==='Z' && nearly(layerCoord, -1)) notation = (sign===-1)?'B':\"B'\";
+    var notation = '?';
+    if(axisChar==='Y' && nearly(layerCoord, +1)) notation = (sign===-1)?'U':"U'";
+    else if(axisChar==='Y' && nearly(layerCoord, -1)) notation = (sign===+1)?'D':"D'";
+    else if(axisChar==='X' && nearly(layerCoord, +1)) notation = (sign===+1)?'R':"R'";
+    else if(axisChar==='X' && nearly(layerCoord, -1)) notation = (sign===-1)?'L':"L'";
+    else if(axisChar==='Z' && nearly(layerCoord, +1)) notation = (sign===+1)?'F':"F'";
+    else if(axisChar==='Z' && nearly(layerCoord, -1)) notation = (sign===-1)?'B':"B'";
     addMoveNotation(notation);
     rotateLayer(axisChar, layerCoord, sign, true);
   }
 
-  // Buttons
-  document.getElementById('btn-reset').addEventListener('click', ()=>{
+  function playAlg(alg){
+    var tokens = alg.trim().split(/\s+/).filter(Boolean).map(function(t){ return t.toUpperCase(); });
+    return (async function(){
+      for (var ti=0; ti<tokens.length; ti++){
+        var t = tokens[ti];
+        var base=t[0], mod=t.slice(1);
+        var dbl = mod.indexOf('2')>=0;
+        var prime = mod.indexOf(\"'\")>=0;
+        var reps = dbl?2:1;
+        for(var r=0;r<reps;r++){
+          if(base==='U') await rotateLayer('Y', +1, prime?-1:+1, true);
+          else if(base==='D') await rotateLayer('Y', -1, prime?+1:-1, true);
+          else if(base==='R') await rotateLayer('X', +1, prime?+1:-1, true);
+          else if(base==='L') await rotateLayer('X', -1, prime?-1:+1, true);
+          else if(base==='F') await rotateLayer('Z', +1, prime?+1:-1, true);
+          else if(base==='B') await rotateLayer('Z', -1, prime?-1:+1, true);
+          addMoveNotation(base + (dbl? '2': (prime?\"'\":'')));
+        }
+      }
+    })();
+  }
+
+  document.getElementById('btn-reset').addEventListener('click', function(){
     buildSolved(); root.rotation.set(0,0,0);
     history=[]; future=[]; moveAlg=[]; moveCount=0;
     moveAlgEl.textContent=''; moveCountEl.textContent='0';
     renderer.render(scene,camera); log('Reset');
   });
-  document.getElementById('btn-scramble').addEventListener('click', async ()=>{
-    const faces=['U','D','L','R','F','B']; let last=null, seq=[];
-    for(let i=0;i<20;i++){ let f; do{ f=faces[(Math.random()*6)|0]; }while(f===last); last=f; const mod=Math.random()<0.33?\"'\":(Math.random()<0.5?'2':''); seq.push(f+mod); }
-    log('Scramble:', seq.join(' '));
-    for(const t of seq){
-      const base=t[0], mod=t.slice(1); const dbl=mod.includes('2'); const prime=mod.includes(\"'\")||mod.includes('’');
-      const reps=dbl?2:1;
-      for(let r=0;r<reps;r++){
-        if(base==='U') await rotateLayer('Y', +1, prime?-1:+1, true);
-        else if(base==='D') await rotateLayer('Y', -1, prime?+1:-1, true);
-        else if(base==='R') await rotateLayer('X', +1, prime?+1:-1, true);
-        else if(base==='L') await rotateLayer('X', -1, prime?-1:+1, true);
-        else if(base==='F') await rotateLayer('Z', +1, prime?+1:-1, true);
-        else if(base==='B') await rotateLayer('Z', -1, prime?-1:+1, true);
-        addMoveNotation(base + (dbl? '2': (prime?\"'\":'')));
-      }
-    }
+  document.getElementById('btn-scramble').addEventListener('click', async function(){
+    var faces=['U','D','L','R','F','B']; var last=null, seq=[];
+    for(var i=0;i<20;i++){ var f; do{ f=faces[(Math.random()*6)|0]; }while(f===last); last=f; var mod=Math.random()<0.33?\"'\":(Math.random()<0.5?'2':''); seq.push(f+mod); }
+    await playAlg(seq.join(' '));
   });
-  document.getElementById('btn-undo').addEventListener('click', ()=>{
-    if(!history.length) return; const snap=history.pop();
-    const curr = cubelets.map(m=>({
+  document.getElementById('btn-undo').addEventListener('click', function(){
+    if(!history.length) return;
+    var snap=history.pop();
+    var curr = cubelets.map(function(m){ return {
       x:m.position.x, y:m.position.y, z:m.position.z,
       rx:m.rotation.x, ry:m.rotation.y, rz:m.rotation.z,
       cx:m.userData.coord.x, cy:m.userData.coord.y, cz:m.userData.coord.z
-    })); future.push(curr); restoreState(snap);
+    }; });
+    future.push(curr);
+    restoreState(snap);
     if(moveAlg.length){ moveAlg.pop(); moveCount=Math.max(0,moveCount-1); }
     moveAlgEl.textContent = moveAlg.join(' ');
     moveCountEl.textContent = String(moveCount);
   });
-  document.getElementById('btn-redo').addEventListener('click', ()=>{
-    if(!future.length) return; const snap=future.pop();
-    history.push(cubelets.map(m=>({
+  document.getElementById('btn-redo').addEventListener('click', function(){
+    if(!future.length) return;
+    var snap=future.pop();
+    history.push(cubelets.map(function(m){ return {
       x:m.position.x, y:m.position.y, z:m.position.z,
       rx:m.rotation.x, ry:m.rotation.y, rz:m.rotation.z,
       cx:m.userData.coord.x, cy:m.userData.coord.y, cz:m.userData.coord.z
-    }))); restoreState(snap);
+    }; }));
+    restoreState(snap);
   });
-  document.getElementById('btn-copy').addEventListener('click', ()=>{
-    const s = moveAlg.join(' '); navigator.clipboard?.writeText(s); log('Alg copiato');
+  document.getElementById('btn-copy').addEventListener('click', function(){
+    var s = moveAlg.join(' ');
+    if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(s); }
   });
 
-  // *** HARD START ***
   buildSolved();
   onResize();
   renderer.render(scene,camera);
   (function loop(){ renderer.render(scene,camera); requestAnimationFrame(loop); })();
   log('Init ok');
 }catch(err){
-  const s = 'ERRORE FATALE: ' + (err && err.message ? err.message : String(err));
+  var s = 'ERRORE FATALE: ' + (err && err.message ? err.message : String(err));
   if(diag) diag.textContent += s + '\\n';
   console.error(err);
 }
