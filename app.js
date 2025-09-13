@@ -30,7 +30,7 @@
   window.addEventListener('mousemove', e=>moveDrag(e.clientX,e.clientY));
   window.addEventListener('mouseup', endDrag);
   sceneEl.addEventListener('touchstart', e=>{ const t=e.touches[0]; startDrag(t.clientX,t.clientY); }, {passive:true});
-  window.addEventListener('touchmove', e=>{ const t=e.touches[0]; moveDrag(t.clientX,t.clientY); e.preventDefault(); }, {passive:false});
+  window.addEventListener('touchmove', e=>{ const t=e.touches[0]; moveDrag(t.clientX,t.clientY); }, {passive:true});
   window.addEventListener('touchend', endDrag);
 
   // Model: each face is array of 9 stickers (0..8)
@@ -237,6 +237,45 @@
       render(); saveState();
     }catch(err){ alert('Import non valido'); }
   });
+
+  
+  // --- Mobile face rotate: long-press + swipe on a face ---
+  let pressTimer=null, pressStart=null, pressFace=null, gestureActive=false;
+  function faceFromTarget(target){
+    return target.closest('.face')?.classList?.[1] || null; // U,D,F,B,L,R
+  }
+  function onTouchStartFace(e){
+    const t = e.targetTouches[0];
+    const f = faceFromTarget(e.target);
+    if(!f) return;
+    pressStart = {x:t.clientX, y:t.clientY, time:Date.now()};
+    pressFace = f;
+    pressTimer = setTimeout(()=>{ gestureActive=true; }, 220); // long-press
+  }
+  function onTouchMoveFace(e){
+    if(!gestureActive) return;
+    e.preventDefault(); // we are in gesture, block page scroll
+    const t = e.targetTouches[0];
+    const dx = t.clientX - pressStart.x;
+    const dy = t.clientY - pressStart.y;
+    const absx = Math.abs(dx), absy = Math.abs(dy);
+    if (absx < 24 && absy < 24) return; // need a meaningful swipe
+    let move = null;
+    // Map swipe to cw/ccw on selected face (simple heuristic):
+    // horizontal right = cw for F, up = cw for U, etc.
+    const cw = (absx > absy) ? (dx > 0) : (dy < 0); // right or up -> cw
+    const base = pressFace;
+    move = base + (cw ? '' : "'");
+    applyMove(move);
+    gestureActive=false; clearTimeout(pressTimer);
+  }
+  function onTouchEndFace(){
+    clearTimeout(pressTimer);
+    gestureActive=false; pressFace=null;
+  }
+  sceneEl.addEventListener('touchstart', onTouchStartFace, {passive:true});
+  sceneEl.addEventListener('touchmove', onTouchMoveFace, {passive:false});
+  sceneEl.addEventListener('touchend', onTouchEndFace);
 
   // Boot
   loadState();
