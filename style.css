@@ -1,13 +1,6 @@
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;background:#1f2430;color:#eee}
-.topbar{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#0b5fff;color:#fff;box-shadow:0 2px 10px rgba(0,0,0,.2)}
-.topbar h1{margin:0;font-size:1.05rem}
-.controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.controls button{border:0;border-radius:10px;padding:8px 12px;background:#fff;color:#0b5fff;font-weight:700;cursor:pointer}
-#stage{width:100%;height:calc(100vh - 230px);max-height:740px;background:#2a3142;border-radius:16px;margin:12px auto;position:relative;overflow:hidden;touch-action:manipulation}
-.hud{max-width:1000px;margin:0 auto 16px;padding:10px 14px;background:#0d1117;border-radius:12px}
-.hud .alg{white-space:nowrap;overflow:auto}
-.hint{color:#cfd6e6}
-footer{padding:14px;text-align:center;color:#cfd6e6}
-.diag{margin-top:8px;background:#111;border:1px solid #333;border-radius:8px;padding:8px;max-height:200px;overflow:auto}
+body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial,sans-serif;background:#1f2430;color:#eee}
+.topbar{position:sticky;top:0;padding:10px 14px;background:#0b5fff;color:#fff}
+#stage{width:100%;height:calc(100vh - 120px);background:#2a3142}
+.diag{margin:8px;background:#111;padding:8px;border-radius:8px}

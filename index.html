@@ -3,64 +3,45 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>RubikApp 3D — Pro (FixStart)</title>
+  <title>RubikApp 3D — Smoke Test</title>
   <meta name="theme-color" content="#0b5fff">
   <link rel="icon" href="icons/icon-192.png">
   <link rel="stylesheet" href="style.css">
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <meta http-equiv="Pragma" content="no-cache">
-  <meta http-equiv="Expires" content="0">
 </head>
 <body>
 <header class="topbar">
-  <h1>RubikApp 3D</h1>
-  <nav class="controls">
-    <button id="btn-scramble">Scramble</button>
-    <button id="btn-reset">Reset</button>
-    <button id="btn-undo">Undo</button>
-    <button id="btn-redo">Redo</button>
-    <button id="btn-copy">Copy Alg</button>
-  </nav>
+  <h1>RubikApp 3D — Smoke</h1>
 </header>
 <main>
   <div id="stage"></div>
-  <div id="hud" class="hud">
-    <div><strong>Mosse:</strong> <span id="move-count">0</span></div>
-    <div class="alg"><code id="move-alg"></code></div>
-    <p class="hint">Touch: trascina su una faccia per ruotare lo strato. Tasti: U D L R F B (+ ' o 2).</p>
-    <pre id="diag" class="diag"></pre>
-  </div>
+  <pre id="diag" class="diag"></pre>
 </main>
-<footer>
-  <small>Fix di avvio + diagnostica. Nessun service worker.</small>
-</footer>
+<footer><small>Test minimo</small></footer>
 
 <script>
-// Disattiva qualunque SW residuo
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations?.().then(list => list.forEach(r => r.unregister().catch(()=>{})));
-}
-// DIAG
-const diag = document.getElementById('diag');
-const log = (...a)=>{ const s=a.join(' '); diag.textContent += s + '\n'; console.log(...a); };
-window.addEventListener('error', e=>{ log('JS ERROR:', e.message); });
+const diag=document.getElementById('diag');
+window.addEventListener('error', e=>{diag.textContent += "ERROR: "+e.message+" ("+e.filename+":"+e.lineno+")\n";});
+function log(s){diag.textContent += s+"\n"; console.log(s);}
 </script>
-
-<!-- Three.js con fallback -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.150.0/build/three.min.js"></script>
 <script>
-const CDNS=[
-  "https://cdn.jsdelivr.net/npm/three@0.150.0/build/three.min.js",
-  "https://unpkg.com/three@0.150.0/build/three.min.js",
-  "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.150.0/three.min.js"
-];
-function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.async=true;s.onload=()=>res(src);s.onerror=()=>rej(new Error('load error '+src));document.head.appendChild(s);});}
-(async()=>{
-  let ok=false;
-  for(const url of CDNS){
-    try{ log('Carico Three:',url); await loadScript(url); if(window.THREE){log('THREE r'+THREE.REVISION+' OK'); ok=true; break;} }catch(e){ log(e.message); }
-  }
-  if(!ok){ log('ERRORE: impossibile caricare Three.js'); return; }
-  const s=document.createElement('script'); s.src='app.js?'+Date.now(); s.async=true; s.onload=()=>log('app.js caricato'); s.onerror=()=>log('ERRORE: app.js non caricato'); document.body.appendChild(s);
+(function(){
+  log("THREE loaded? "+(!!window.THREE));
+  const stage=document.getElementById('stage');
+  const renderer=new THREE.WebGLRenderer({antialias:true});
+  renderer.setSize(stage.clientWidth, stage.clientHeight);
+  stage.appendChild(renderer.domElement);
+  const scene=new THREE.Scene();
+  scene.background=new THREE.Color(0x2a3142);
+  const camera=new THREE.PerspectiveCamera(45, stage.clientWidth/stage.clientHeight, 0.1, 100);
+  camera.position.set(4,4,6); camera.lookAt(0,0,0);
+  const light=new THREE.DirectionalLight(0xffffff,1); light.position.set(5,5,5); scene.add(light);
+  const geom=new THREE.BoxGeometry(1,1,1);
+  const mats=[0xff0000,0x00ff00,0x0000ff,0xffff00,0xff6c00,0xffffff].map(c=>new THREE.MeshStandardMaterial({color:c}));
+  const cube=new THREE.Mesh(geom, mats); scene.add(cube);
+  function loop(){ cube.rotation.x+=0.01; cube.rotation.y+=0.02; renderer.render(scene,camera); requestAnimationFrame(loop); }
+  loop();
+  log("Render loop started");
 })();
 </script>
 </body>
