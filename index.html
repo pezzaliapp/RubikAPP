@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>RubikApp 3D — Pro (Fallback CDN)</title>
+  <title>RubikApp 3D — Pro (FixStart)</title>
   <meta name="theme-color" content="#0b5fff">
   <link rel="icon" href="icons/icon-192.png">
   <link rel="stylesheet" href="style.css">
@@ -32,51 +32,35 @@
   </div>
 </main>
 <footer>
-  <small>Loader con fallback multiplo (jsDelivr → unpkg → cdnjs). Nessun service worker.</small>
+  <small>Fix di avvio + diagnostica. Nessun service worker.</small>
 </footer>
 
 <script>
-// Kill any SW on this scope (difensivo)
+// Disattiva qualunque SW residuo
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.getRegistrations?.().then(list => list.forEach(r => r.unregister().catch(()=>{})));
 }
-
+// DIAG
 const diag = document.getElementById('diag');
-function log(msg){ diag.textContent += msg + "\n"; console.log(msg); }
+const log = (...a)=>{ const s=a.join(' '); diag.textContent += s + '\n'; console.log(...a); };
+window.addEventListener('error', e=>{ log('JS ERROR:', e.message); });
+</script>
 
-const CDNS = [
+<!-- Three.js con fallback -->
+<script>
+const CDNS=[
   "https://cdn.jsdelivr.net/npm/three@0.150.0/build/three.min.js",
   "https://unpkg.com/three@0.150.0/build/three.min.js",
   "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.150.0/three.min.js"
 ];
-
-function loadScript(src){
-  return new Promise((resolve,reject)=>{
-    const s=document.createElement('script');
-    s.src=src; s.async=true; s.onload=()=>resolve(src);
-    s.onerror=()=>reject(new Error('load error '+src));
-    document.head.appendChild(s);
-  });
-}
-
-(async () => {
-  let ok=false, lastErr=null;
-  for (const url of CDNS){
-    try{
-      log('Carico Three da: '+url);
-      await loadScript(url);
-      if (window.THREE){ log('THREE r'+THREE.REVISION+' OK'); ok=true; break; }
-    }catch(e){ lastErr=e; log('Fallito: '+e.message); }
+function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.async=true;s.onload=()=>res(src);s.onerror=()=>rej(new Error('load error '+src));document.head.appendChild(s);});}
+(async()=>{
+  let ok=false;
+  for(const url of CDNS){
+    try{ log('Carico Three:',url); await loadScript(url); if(window.THREE){log('THREE r'+THREE.REVISION+' OK'); ok=true; break;} }catch(e){ log(e.message); }
   }
-  if(!ok){ diag.textContent += "ERRORE: impossibile caricare Three.js\n"; return; }
-
-  // Carica l'app dopo Three
-  const s=document.createElement('script');
-  s.src="app.js?nocache="+Date.now();
-  s.async=true;
-  s.onload=()=>log('app.js caricato');
-  s.onerror=()=>log('ERRORE: app.js non caricato');
-  document.body.appendChild(s);
+  if(!ok){ log('ERRORE: impossibile caricare Three.js'); return; }
+  const s=document.createElement('script'); s.src='app.js?'+Date.now(); s.async=true; s.onload=()=>log('app.js caricato'); s.onerror=()=>log('ERRORE: app.js non caricato'); document.body.appendChild(s);
 })();
 </script>
 </body>
