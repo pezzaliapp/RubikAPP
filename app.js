@@ -77,7 +77,16 @@ function hitsAt(cx,cy){
   const r=renderer.domElement.getBoundingClientRect();
   ndc.x=((cx-r.left)/r.width)*2-1; ndc.y= -((cy-r.top)/r.height)*2+1;
   ray.setFromCamera(ndc, camera);
-  return ray.intersectObjects(cubelets);
+  // Importante: raycast ricorsivo così cliccare le sticker funziona
+  const inters = ray.intersectObjects(root.children, true);
+  if(!inters.length) return [];
+  // Normalizza: risali dal piano sticker al cubetto (figlio diretto di root)
+  const norm = inters.map(h=>{
+    let obj = h.object;
+    while(obj && obj.parent && obj.parent !== root){ obj = obj.parent; }
+    return { ...h, object: obj };
+  });
+  return norm;
 }
 function onDown(e){ const t=e.touches?e.touches[0]:e; const h=hitsAt(t.clientX,t.clientY);
   if(h.length){ press={hit:h[0],x:t.clientX,y:t.clientY}; } else { orbitStart(t.clientX,t.clientY); } }
