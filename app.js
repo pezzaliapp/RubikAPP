@@ -1,31 +1,35 @@
 (()=>{
 
 const STICKER = {
-  U: 0xffffff, D: 0xffd000, F: 0x00a74a, B: 0x0053d6, L: 0xff6c00, R: 0xd80027
+  U: 0xffffff, D: 0xffd000, F: 0x00a74a, B: 0x2f6ee6, L: 0xff6c00, R: 0xd80027
 };
 
 const stage = document.getElementById('stage');
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xe9eef6);
+scene.background = new THREE.Color(0x2a3142);
+
 const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
 camera.position.set(4.2, 3.8, 5.8);
 camera.lookAt(0,0,0);
 
-const renderer = new THREE.WebGLRenderer({antialias:true});
+const renderer = new THREE.WebGLRenderer({antialias:true, alpha:false});
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(stage.clientWidth, stage.clientHeight);
 stage.appendChild(renderer.domElement);
 
+// Resize + primo frame forzato (fix iOS)
 function onResize(){
   const w = stage.clientWidth, h = stage.clientHeight;
   camera.aspect = w/h; camera.updateProjectionMatrix();
   renderer.setSize(w,h);
+  renderer.render(scene, camera);
 }
-window.addEventListener('resize', onResize);
+window.addEventListener('resize', onResize, {passive:true});
 
-scene.add(new THREE.AmbientLight(0xffffff, .8));
-const dir = new THREE.DirectionalLight(0xffffff, .6);
-dir.position.set(4,7,6); scene.add(dir);
+// Luci
+scene.add(new THREE.AmbientLight(0xffffff, .85));
+const key = new THREE.DirectionalLight(0xffffff, .8); key.position.set(4,7,6); scene.add(key);
+const fill = new THREE.DirectionalLight(0xffffff, .35); fill.position.set(-6,-4,-8); scene.add(fill);
 
 function nearlyEqual(a,b,eps=1e-4){ return Math.abs(a-b) < eps; }
 function roundTo90(rad){ const q = Math.round(rad / (Math.PI/2)); return q * (Math.PI/2); }
@@ -35,14 +39,14 @@ const size = 0.98, gap = 0.02;
 const geo = new THREE.BoxGeometry(size, size, size);
 
 function materialsFor(i,j,k){
-  const base = new THREE.MeshPhongMaterial({color:0x222222, shininess:30});
+  const base = new THREE.MeshStandardMaterial({color:0x20232c, metalness:0.1, roughness:0.6});
   const arr = [base, base, base, base, base, base].map(m=>m.clone());
-  if(i=== 1) arr[0] = new THREE.MeshPhongMaterial({color:STICKER.R});
-  if(i===-1) arr[1] = new THREE.MeshPhongMaterial({color:STICKER.L});
-  if(j=== 1) arr[2] = new THREE.MeshPhongMaterial({color:STICKER.U});
-  if(j===-1) arr[3] = new THREE.MeshPhongMaterial({color:STICKER.D});
-  if(k=== 1) arr[4] = new THREE.MeshPhongMaterial({color:STICKER.F});
-  if(k===-1) arr[5] = new THREE.MeshPhongMaterial({color:STICKER.B});
+  if(i=== 1) arr[0] = new THREE.MeshStandardMaterial({color:STICKER.R});
+  if(i===-1) arr[1] = new THREE.MeshStandardMaterial({color:STICKER.L});
+  if(j=== 1) arr[2] = new THREE.MeshStandardMaterial({color:STICKER.U});
+  if(j===-1) arr[3] = new THREE.MeshStandardMaterial({color:STICKER.D});
+  if(k=== 1) arr[4] = new THREE.MeshStandardMaterial({color:STICKER.F});
+  if(k===-1) arr[5] = new THREE.MeshStandardMaterial({color:STICKER.B});
   return arr;
 }
 
@@ -61,11 +65,14 @@ function buildSolved(){
     }
   }
 }
-buildSolved();
 
+buildSolved();
+onResize(); // <<< forza il primo render su iOS
+
+// Orbit base
 let isOrbit=false, lastX=0, lastY=0;
 function orbitStart(x,y){ isOrbit=true; lastX=x; lastY=y; }
-function orbitMove(x,y){ if(!isOrbit) return; const dx=(x-lastX)/120, dy=(y-lastY)/120; root.rotation.y += dx; root.rotation.x += dy; lastX=x; lastY=y; }
+function orbitMove(x,y){ if(!isOrbit || rotating) return; const dx=(x-lastX)/120, dy=(y-lastY)/120; root.rotation.y += dx; root.rotation.x += dy; lastX=x; lastY=y; }
 function orbitEnd(){ isOrbit=false; }
 
 const raycaster = new THREE.Raycaster();
@@ -90,10 +97,7 @@ function onPointerMove(e){
   if(isOrbit && !rotating){ orbitMove(t.clientX, t.clientY); return; }
   if(!pressInfo || rotating) return;
   const dx = t.clientX - pressInfo.x, dy = t.clientY - pressInfo.y;
-  if(Math.hypot(dx,dy) > 18){
-    rotateFromGesture(pressInfo.hit, dx, dy);
-    pressInfo = null;
-  }
+  if(Math.hypot(dx,dy) > 18){ rotateFromGesture(pressInfo.hit, dx, dy); pressInfo=null; }
 }
 function onPointerUp(){ orbitEnd(); pressInfo=null; }
 
@@ -138,22 +142,30 @@ function rotateFromGesture(hit, dx, dy){
   requestAnimationFrame(anim);
 
   function finalize(){
+    const s = size+gap;
     layer.forEach(m=>{
       m.applyMatrix4(group.matrix);
-      const p=m.position, s=size+gap;
-      p.x = Math.round(p.x/s)*s; p.y = Math.round(p.y/s)*s; p.z = Math.round(p.z/s)*s;
-      m.userData.coord.set(Math.round(p.x/s), Math.round(p.y/s), Math.round(p.z/s));
+      m.position.set(
+        Math.round(m.position.x/s)*s,
+        Math.round(m.position.y/s)*s,
+        Math.round(m.position.z/s)*s
+      );
+      m.userData.coord.set(
+        Math.round(m.position.x/s),
+        Math.round(m.position.y/s),
+        Math.round(m.position.z/s)
+      );
       m.rotation.x = roundTo90(m.rotation.x);
       m.rotation.y = roundTo90(m.rotation.y);
       m.rotation.z = roundTo90(m.rotation.z);
     });
     layer.forEach(m=>root.attach(m)); scene.remove(group);
-    rotating=false;
+    rotating=false; renderer.render(scene, camera);
   }
 }
 
 document.getElementById('btn-reset').addEventListener('click', ()=>{
-  root.rotation.set(0,0,0); buildSolved();
+  root.rotation.set(0,0,0); buildSolved(); renderer.render(scene,camera);
 });
 document.getElementById('btn-scramble').addEventListener('click', async ()=>{
   if(rotating) return;
@@ -166,5 +178,6 @@ document.getElementById('btn-scramble').addEventListener('click', async ()=>{
 });
 
 function loop(){ renderer.render(scene,camera); requestAnimationFrame(loop); }
-onResize(); loop();
+loop();
+
 })();
