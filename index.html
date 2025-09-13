@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>RubikApp 3D — touch + color fix</title>
+  <title>RubikApp 3D — Pro</title>
   <meta name="theme-color" content="#0b5fff">
   <link rel="icon" href="icons/icon-192.png">
   <link rel="stylesheet" href="style.css">
@@ -14,14 +14,21 @@
   <nav class="controls">
     <button id="btn-scramble">Scramble</button>
     <button id="btn-reset">Reset</button>
+    <button id="btn-undo">Undo</button>
+    <button id="btn-redo">Redo</button>
+    <button id="btn-copy">Copy Alg</button>
   </nav>
 </header>
 <main>
   <div id="stage"></div>
-  <p class="hint">Tocca/trascina SU una faccia per ruotare lo strato. Trascina sullo sfondo per ruotare la vista.</p>
+  <div id="hud" class="hud">
+    <div><strong>Mosse:</strong> <span id="move-count">0</span></div>
+    <div class="alg"><code id="move-alg"></code></div>
+    <p class="hint">Touch: trascina su una faccia per ruotare lo strato. Tasti: U D L R F B (+ ' o 2).</p>
+  </div>
 </main>
 <footer>
-  <small>Three.js 0.150.0 via CDN. Nessun service worker: semplice e affidabile.</small>
+  <small>Three.js 0.150.0 via CDN — colori con sticker & polygonOffset, compatibile iPhone/Mac.</small>
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/three@0.150.0/build/three.min.js"></script>
 <script src="app.js"></script>
