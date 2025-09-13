@@ -13,6 +13,8 @@ camera.position.set(4.2, 3.8, 5.8);
 camera.lookAt(0,0,0);
 
 const renderer = new THREE.WebGLRenderer({antialias:true, alpha:false});
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.NoToneMapping;
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(stage.clientWidth, stage.clientHeight);
 stage.appendChild(renderer.domElement);
@@ -35,7 +37,7 @@ function nearlyEqual(a,b,eps=1e-4){ return Math.abs(a-b) < eps; }
 function roundTo90(rad){ const q = Math.round(rad / (Math.PI/2)); return q * (Math.PI/2); }
 
 const cubelets = [];
-const size = 0.98, gap = 0.02;
+const size = 0.98, gap = 0.012;
 const geo = new THREE.BoxGeometry(size, size, size);
 
 function materialsFor(i,j,k){
@@ -50,6 +52,25 @@ function materialsFor(i,j,k){
   return arr;
 }
 
+
+function addStickers(mesh, i,j,k){
+  const eps = 0.505; // slight offset from cube surface
+  const s = 0.96;    // sticker size relative to face
+  const g = new THREE.PlaneGeometry(s, s);
+  const mk = (color)=> new THREE.MeshBasicMaterial({color, side:THREE.FrontSide});
+  // +X (right)
+  if(i===1){ const m=new THREE.Mesh(g, mk(STICKER.R)); m.position.x=eps; m.rotation.y=-Math.PI/2; mesh.add(m); }
+  // -X (left)
+  if(i===-1){ const m=new THREE.Mesh(g, mk(STICKER.L)); m.position.x=-eps; m.rotation.y=Math.PI/2; mesh.add(m); }
+  // +Y (up)
+  if(j===1){ const m=new THREE.Mesh(g, mk(STICKER.U)); m.position.y=eps; m.rotation.x=Math.PI/2; mesh.add(m); }
+  // -Y (down)
+  if(j===-1){ const m=new THREE.Mesh(g, mk(STICKER.D)); m.position.y=-eps; m.rotation.x=-Math.PI/2; mesh.add(m); }
+  // +Z (front)
+  if(k===1){ const m=new THREE.Mesh(g, mk(STICKER.F)); m.position.z=eps; mesh.add(m); }
+  // -Z (back)
+  if(k===-1){ const m=new THREE.Mesh(g, mk(STICKER.B)); m.position.z=-eps; m.rotation.y=Math.PI; mesh.add(m); }
+}
 const root = new THREE.Group(); scene.add(root);
 function buildSolved(){
   while(root.children.length) root.remove(root.children[0]);
@@ -58,6 +79,7 @@ function buildSolved(){
     for(let j=-1;j<=1;j++){
       for(let k=-1;k<=1;k++){
         const mesh = new THREE.Mesh(geo, materialsFor(i,j,k));
+        addStickers(mesh, i,j,k);
         mesh.position.set(i*(size+gap), j*(size+gap), k*(size+gap));
         mesh.userData.coord = new THREE.Vector3(i,j,k);
         root.add(mesh); cubelets.push(mesh);
