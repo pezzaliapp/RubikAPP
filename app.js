@@ -21,7 +21,7 @@
   const moveDrag = (x,y) => {
     if(!isDragging) return;
     rotY += (x-lastX)*0.4;
-    rotX -= (y-lastY)*0.4;
+    rotX -= (y-lastY)*0.4; rotX = Math.max(-85, Math.min(85, rotX));
     lastX = x; lastY = y;
     updateCamera();
   };
@@ -30,7 +30,7 @@
   window.addEventListener('mousemove', e=>moveDrag(e.clientX,e.clientY));
   window.addEventListener('mouseup', endDrag);
   sceneEl.addEventListener('touchstart', e=>{ const t=e.touches[0]; startDrag(t.clientX,t.clientY); }, {passive:true});
-  window.addEventListener('touchmove', e=>{ const t=e.touches[0]; moveDrag(t.clientX,t.clientY); }, {passive:true});
+  window.addEventListener('touchmove', e=>{ const t=e.touches[0]; moveDrag(t.clientX,t.clientY); e.preventDefault(); }, {passive:false});
   window.addEventListener('touchend', endDrag);
 
   // Model: each face is array of 9 stickers (0..8)
