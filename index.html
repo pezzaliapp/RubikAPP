@@ -1,108 +1,30 @@
 <!doctype html>
 <html lang="it">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>RubikApp — 3×3 Cube</title>
-  <link rel="manifest" href="manifest.json">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RubikApp 3D — layer reali</title>
   <meta name="theme-color" content="#0b5fff">
   <link rel="icon" href="icons/icon-192.png">
-  <link rel="apple-touch-icon" href="icons/icon-192.png">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="topbar">
-    <h1>RubikApp</h1>
-    <nav class="controls">
-      <button id="btn-scramble" title="Scramble (S)">Scramble</button>
-      <button id="btn-reset" title="Reset (X)">Reset</button>
-      <button id="btn-undo" title="Undo (Z)">Undo</button>
-      <button id="btn-redo" title="Redo (Y)">Redo</button>
-      <label class="speed">
-        Speed
-        <input id="speed" type="range" min="100" max="1200" value="350">
-      </label>
-      <button id="btn-help">Help</button>
-    </nav>
-  </header>
-
-  <main>
-    <section class="scene-wrap">
-      <div id="scene" class="scene" aria-label="Rubik cube 3x3" role="application">
-        <div id="cube" class="cube" tabindex="0" aria-roledescription="rotatable 3D cube"></div>
-      </div>
-      <div class="legend">
-        <h3>Mosse</h3>
-        <p>Usa i tasti: U, D, L, R, F, B (aggiungi ' per la mossa inversa, 2 per il doppio).<br>
-        Example: <code>R U R' U'</code>. Tieni premuto il mouse o trascina per ruotare la vista.</p>
-        <details>
-          <summary>Salvataggio</summary>
-          <p>Stato salvato in locale automaticamente (localStorage). Puoi esportare/importare JSON.</p>
-          <div class="io">
-            <button id="btn-export">Export</button>
-            <input id="file-import" type="file" accept="application/json" style="display:none">
-            <button id="btn-import">Import</button>
-          </div>
-        </details>
-      </div>
-    </section>
-
-    <section class="pad">
-      <div class="row">
-        <button data-move="U">U</button>
-        <button data-move="U'">U'</button>
-        <button data-move="U2">U2</button>
-      </div>
-      <div class="row">
-        <button data-move="L">L</button>
-        <button data-move="L'">L'</button>
-        <button data-move="L2">L2</button>
-      </div>
-      <div class="row">
-        <button data-move="F">F</button>
-        <button data-move="F'">F'</button>
-        <button data-move="F2">F2</button>
-      </div>
-      <div class="row">
-        <button data-move="R">R</button>
-        <button data-move="R'">R'</button>
-        <button data-move="R2">R2</button>
-      </div>
-      <div class="row">
-        <button data-move="B">B</button>
-        <button data-move="B'">B'</button>
-        <button data-move="B2">B2</button>
-      </div>
-      <div class="row">
-        <button data-move="D">D</button>
-        <button data-move="D'">D'</button>
-        <button data-move="D2">D2</button>
-      </div>
-    </section>
-
-    <dialog id="help">
-      <h2>RubikApp — Guida rapida</h2>
-      <p>
-        • Rotazione vista: trascina con il mouse / touch.<br>
-        • Mosse: tasti <strong>U D L R F B</strong>. Aggiungi <strong>'</strong> per l'inversa e <strong>2</strong> per il doppio.<br>
-        • Scorciatoie: <kbd>S</kbd> scramble, <kbd>X</kbd> reset, <kbd>Z</kbd> undo, <kbd>Y</kbd> redo.
-      </p>
-      <p>Questa app è una PWA: usa <em>Installa app</em> nel browser per averla offline.</p>
-      <button id="btn-close-help">Chiudi</button>
-    </dialog>
-  </main>
-
-  <footer>
-    <small>© 2025 RubikApp • Open‑source (MIT). — Salvata in locale, nessun server.</small>
-  </footer>
-
-  <script src="app.js"></script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('service-worker.js');
-      });
-    }
-  </script>
+<header class="topbar">
+  <h1>RubikApp 3D</h1>
+  <nav class="controls">
+    <button id="btn-scramble">Scramble</button>
+    <button id="btn-reset">Reset</button>
+    <span id="info"></span>
+  </nav>
+</header>
+<main>
+  <div id="stage"></div>
+  <p class="hint">Rotazione reale: tocca/sposta sopra una faccia per ruotare lo strato corrispondente. Trascina sullo sfondo per ruotare la vista.</p>
+</main>
+<footer>
+  <small>Three.js via CDN. Questa build privilegia la giocabilità; l’offline PWA si può aggiungere dopo.</small>
+</footer>
+<script src="https://unpkg.com/three@0.161.0/build/three.min.js"></script>
+<script src="app.js"></script>
 </body>
 </html>

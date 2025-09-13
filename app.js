@@ -1,283 +1,170 @@
-// RubikApp — minimal 3×3 cube in CSS 3D
-(() => {
-  const faceOrder = ['U','R','F','D','L','B']; // standard order
-  const colors = { U:'cU', D:'cD', F:'cF', B:'cB', L:'cL', R:'cR' };
+(()=>{
 
-  const stateKey = 'rubikapp-state-v1';
-  const cubeEl = document.getElementById('cube');
-  const sceneEl = document.getElementById('scene');
-  const speedInput = document.getElementById('speed');
+const STICKER = {
+  U: 0xffffff, D: 0xffd000, F: 0x00a74a, B: 0x0053d6, L: 0xff6c00, R: 0xd80027
+};
 
-  let animationMs = +speedInput.value;
-  speedInput.addEventListener('input', () => animationMs = +speedInput.value);
+const stage = document.getElementById('stage');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xe9eef6);
+const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
+camera.position.set(4.2, 3.8, 5.8);
+camera.lookAt(0,0,0);
 
-  // Camera/orbit state
-  let rotX = -24, rotY = -32, isDragging = false, lastX=0, lastY=0;
-  const updateCamera = () => {
-    cubeEl.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg)`;
-  };
-  updateCamera();
-  const startDrag = (x,y) => { isDragging=true; lastX=x; lastY=y; sceneEl.classList.add('grabbing'); };
-  const moveDrag = (x,y) => {
-    if(!isDragging) return;
-    rotY += (x-lastX)*0.4;
-    rotX -= (y-lastY)*0.4; rotX = Math.max(-85, Math.min(85, rotX));
-    lastX = x; lastY = y;
-    updateCamera();
-  };
-  const endDrag = ()=>{ isDragging=false; sceneEl.classList.remove('grabbing'); };
-  sceneEl.addEventListener('mousedown', e=>startDrag(e.clientX,e.clientY));
-  window.addEventListener('mousemove', e=>moveDrag(e.clientX,e.clientY));
-  window.addEventListener('mouseup', endDrag);
-  sceneEl.addEventListener('touchstart', e=>{ const t=e.touches[0]; startDrag(t.clientX,t.clientY); }, {passive:true});
-  window.addEventListener('touchmove', e=>{ const t=e.touches[0]; moveDrag(t.clientX,t.clientY); }, {passive:true});
-  window.addEventListener('touchend', endDrag);
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(stage.clientWidth, stage.clientHeight);
+stage.appendChild(renderer.domElement);
 
-  // Model: each face is array of 9 stickers (0..8)
-  let cube = resetCube();
-  let history = [], future = [];
+function onResize(){
+  const w = stage.clientWidth, h = stage.clientHeight;
+  camera.aspect = w/h; camera.updateProjectionMatrix();
+  renderer.setSize(w,h);
+}
+window.addEventListener('resize', onResize);
 
-  function resetCube(){
-    const res = {};
-    for(const f of faceOrder){
-      res[f] = Array(9).fill(f); // center defines color
-    }
-    return res;
-  }
+scene.add(new THREE.AmbientLight(0xffffff, .8));
+const dir = new THREE.DirectionalLight(0xffffff, .6);
+dir.position.set(4,7,6); scene.add(dir);
 
-  function saveState() {
-    localStorage.setItem(stateKey, JSON.stringify({cube, rotX, rotY}));
-  }
-  function loadState() {
-    try {
-      const data = JSON.parse(localStorage.getItem(stateKey));
-      if(!data) return;
-      cube = data.cube || cube;
-      rotX = data.rotX ?? rotX;
-      rotY = data.rotY ?? rotY;
-      updateCamera();
-    } catch(e){}
-  }
+function nearlyEqual(a,b,eps=1e-4){ return Math.abs(a-b) < eps; }
+function roundTo90(rad){ const q = Math.round(rad / (Math.PI/2)); return q * (Math.PI/2); }
 
-  // Render
-  function render(){
-    cubeEl.innerHTML = '';
-    for(const f of faceOrder){
-      const face = document.createElement('div');
-      face.className = 'face ' + f;
-      const arr = cube[f];
-      for(let i=0;i<9;i++){
-        const st = document.createElement('div');
-        st.className = 'sticker ' + colors[arr[i]];
-        face.appendChild(st);
+const cubelets = [];
+const size = 0.98, gap = 0.02;
+const geo = new THREE.BoxGeometry(size, size, size);
+
+function materialsFor(i,j,k){
+  const base = new THREE.MeshPhongMaterial({color:0x222222, shininess:30});
+  const arr = [base, base, base, base, base, base].map(m=>m.clone());
+  if(i=== 1) arr[0] = new THREE.MeshPhongMaterial({color:STICKER.R});
+  if(i===-1) arr[1] = new THREE.MeshPhongMaterial({color:STICKER.L});
+  if(j=== 1) arr[2] = new THREE.MeshPhongMaterial({color:STICKER.U});
+  if(j===-1) arr[3] = new THREE.MeshPhongMaterial({color:STICKER.D});
+  if(k=== 1) arr[4] = new THREE.MeshPhongMaterial({color:STICKER.F});
+  if(k===-1) arr[5] = new THREE.MeshPhongMaterial({color:STICKER.B});
+  return arr;
+}
+
+const root = new THREE.Group(); scene.add(root);
+function buildSolved(){
+  while(root.children.length) root.remove(root.children[0]);
+  cubelets.length = 0;
+  for(let i=-1;i<=1;i++){
+    for(let j=-1;j<=1;j++){
+      for(let k=-1;k<=1;k++){
+        const mesh = new THREE.Mesh(geo, materialsFor(i,j,k));
+        mesh.position.set(i*(size+gap), j*(size+gap), k*(size+gap));
+        mesh.userData.coord = new THREE.Vector3(i,j,k);
+        root.add(mesh); cubelets.push(mesh);
       }
-      cubeEl.appendChild(face);
     }
   }
+}
+buildSolved();
 
-  // Rotation helpers
-  const rotateFace = (arr, times=1) => {
-    // Rotate face 3x3 clockwise 'times' times
-    for(let t=0;t<times;t++){
-      const a = arr.slice();
-      arr[0]=a[6]; arr[1]=a[3]; arr[2]=a[0];
-      arr[3]=a[7];              arr[5]=a[1];
-      arr[6]=a[8]; arr[7]=a[5]; arr[8]=a[2];
-    }
-  };
+let isOrbit=false, lastX=0, lastY=0;
+function orbitStart(x,y){ isOrbit=true; lastX=x; lastY=y; }
+function orbitMove(x,y){ if(!isOrbit) return; const dx=(x-lastX)/120, dy=(y-lastY)/120; root.rotation.y += dx; root.rotation.x += dy; lastX=x; lastY=y; }
+function orbitEnd(){ isOrbit=false; }
 
-  // Adjacent ring indices per move (clockwise when looking at the face)
-  const rings = {
-    U: { order: ['B','R','F','L'],
-         idx:   [[0,1,2],[0,1,2],[0,1,2],[0,1,2]] },
-    D: { order: ['F','R','B','L'],
-         idx:   [[6,7,8],[6,7,8],[6,7,8],[6,7,8]] },
-    F: { order: ['U','R','D','L'],
-         idx:   [[6,7,8],[0,3,6],[2,1,0],[8,5,2]] },
-    B: { order: ['U','L','D','R'],
-         idx:   [[2,1,0],[0,3,6],[6,7,8],[8,5,2]] },
-    R: { order: ['U','B','D','F'],
-         idx:   [[2,5,8],[0,3,6],[2,5,8],[2,5,8]] },
-    L: { order: ['U','F','D','B'],
-         idx:   [[0,3,6],[0,3,6],[0,3,6],[8,5,2]] },
-  };
+const raycaster = new THREE.Raycaster();
+const ndc = new THREE.Vector2();
+let pressInfo=null, rotating=false;
 
-  function applyMove(move, animate=true){
-    const base = move[0];
-    if(!rings[base]) return;
-    let times = 1;
-    if(move.endsWith('2')) times = 2;
-    else if(move.endsWith("'")) times = 3; // 3 CW = 1 CCW
+function getHits(cx,cy){
+  const r = renderer.domElement.getBoundingClientRect();
+  ndc.x = ((cx-r.left)/r.width)*2-1; ndc.y = -((cy-r.top)/r.height)*2+1;
+  raycaster.setFromCamera(ndc, camera);
+  return raycaster.intersectObjects(cubelets);
+}
 
-    history.push(JSON.stringify(cube));
-    future.length = 0;
+function onPointerDown(e){
+  const t = e.touches ? e.touches[0] : e;
+  const hits = getHits(t.clientX, t.clientY);
+  if(hits.length){ pressInfo = {hit:hits[0], x:t.clientX, y:t.clientY}; }
+  else { orbitStart(t.clientX, t.clientY); }
+}
+function onPointerMove(e){
+  const t = e.touches ? e.touches[0] : e;
+  if(isOrbit && !rotating){ orbitMove(t.clientX, t.clientY); return; }
+  if(!pressInfo || rotating) return;
+  const dx = t.clientX - pressInfo.x, dy = t.clientY - pressInfo.y;
+  if(Math.hypot(dx,dy) > 18){
+    rotateFromGesture(pressInfo.hit, dx, dy);
+    pressInfo = null;
+  }
+}
+function onPointerUp(){ orbitEnd(); pressInfo=null; }
 
-    // animate by delaying render changes to simulate rotation
-    doTurn(base, times, animate).then(()=>{
-      saveState();
+renderer.domElement.addEventListener('mousedown', onPointerDown);
+window.addEventListener('mousemove', onPointerMove);
+window.addEventListener('mouseup', onPointerUp);
+renderer.domElement.addEventListener('touchstart', onPointerDown, {passive:true});
+window.addEventListener('touchmove', onPointerMove, {passive:true});
+window.addEventListener('touchend', onPointerUp);
+
+function rotateFromGesture(hit, dx, dy){
+  if(rotating) return; rotating=true;
+  const faceNormal = hit.face.normal.clone().applyMatrix3(new THREE.Matrix3().getNormalMatrix(hit.object.matrixWorld)).normalize();
+  const dominant = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+  let axis = new THREE.Vector3();
+  if(Math.abs(faceNormal.z) > 0.9){ axis = (dominant==='x') ? new THREE.Vector3(0,1,0) : new THREE.Vector3(1,0,0); }
+  else if(Math.abs(faceNormal.x) > 0.9){ axis = (dominant==='x') ? new THREE.Vector3(0,1,0) : new THREE.Vector3(0,0,1); }
+  else { axis = (dominant==='x') ? new THREE.Vector3(0,0,1) : new THREE.Vector3(1,0,0); }
+  let sign = (dominant==='x') ? (dx>0?1:-1) : (dy<0?1:-1);
+
+  const coord = hit.object.userData.coord.clone();
+  let selector;
+  if(Math.abs(axis.x) > 0.9) selector = m=> nearlyEqual(m.userData.coord.x, coord.x);
+  else if(Math.abs(axis.y) > 0.9) selector = m=> nearlyEqual(m.userData.coord.y, coord.y);
+  else selector = m=> nearlyEqual(m.userData.coord.z, coord.z);
+
+  const group = new THREE.Group(), layer=[];
+  cubelets.forEach(m=>{ if(selector(m)){ layer.push(m); group.attach(m); } });
+  scene.add(group);
+
+  const target = (Math.PI/2) * sign;
+  const dur = 200; const t0 = performance.now();
+  function anim(now){
+    const t = Math.min(1, (now-t0)/dur);
+    group.rotation.x = axis.x * target * t;
+    group.rotation.y = axis.y * target * t;
+    group.rotation.z = axis.z * target * t;
+    renderer.render(scene, camera);
+    if(t<1) requestAnimationFrame(anim);
+    else finalize();
+  }
+  requestAnimationFrame(anim);
+
+  function finalize(){
+    layer.forEach(m=>{
+      m.applyMatrix4(group.matrix);
+      const p=m.position, s=size+gap;
+      p.x = Math.round(p.x/s)*s; p.y = Math.round(p.y/s)*s; p.z = Math.round(p.z/s)*s;
+      m.userData.coord.set(Math.round(p.x/s), Math.round(p.y/s), Math.round(p.z/s));
+      m.rotation.x = roundTo90(m.rotation.x);
+      m.rotation.y = roundTo90(m.rotation.y);
+      m.rotation.z = roundTo90(m.rotation.z);
     });
+    layer.forEach(m=>root.attach(m)); scene.remove(group);
+    rotating=false;
   }
+}
 
-  async function doTurn(base, times, animate){
-    const ring = rings[base];
-    // face rotation
-    rotateFace(cube[base], times);
-
-    // cycle ring stickers times
-    for(let t=0;t<times;t++){
-      const temp = ring.idx[0].map(i => cube[ring.order[0]][i]);
-      for(let k=0;k<3;k++){
-        const from = ring.order[(k+1)%4];
-        const to   = ring.order[k];
-        const idxFrom = ring.idx[(k+1)%4];
-        const idxTo   = ring.idx[k];
-        idxTo.forEach((pos, j) => cube[to][pos] = cube[from][idxFrom[j]]);
-      }
-      ring.idx[3].forEach((pos, j) => cube[ring.order[3]][pos] = temp[j]);
-    }
-
-    // simple animation by toggling a class on the cube (duration = animationMs)
-    if(animate){
-      cubeEl.style.transition = `transform ${animationMs}ms ease`;
-      // brief nudge to hint motion (no actual 3D layer rotation of sub-slices for simplicity)
-      cubeEl.style.transform += ' rotateZ(0.0001deg)';
-      render();
-      await new Promise(r=>setTimeout(r, animationMs));
-      cubeEl.style.transition = '';
-    } else {
-      render();
-    }
+document.getElementById('btn-reset').addEventListener('click', ()=>{
+  root.rotation.set(0,0,0); buildSolved();
+});
+document.getElementById('btn-scramble').addEventListener('click', async ()=>{
+  if(rotating) return;
+  for(let i=0;i<20;i++){
+    const rand = cubelets[(Math.random()*cubelets.length)|0];
+    const fake = {object:rand, face:{normal:new THREE.Vector3(0,0,1)}};
+    const dx = (Math.random()>.5?1:-1)*30, dy=(Math.random()>.5?1:-1)*30;
+    await new Promise(res=>{ const iv=setInterval(()=>{ if(!rotating){ clearInterval(iv); res(); }}, 18); rotateFromGesture(fake, dx, dy); });
   }
+});
 
-  // Controls
-  function handleKey(e){
-    const key = e.key.toUpperCase();
-    if("UDLRFB".includes(key)){
-      let m = key;
-      if(e.shiftKey) m = key+"'";
-      if(e.altKey || e.ctrlKey) m = key+'2';
-      applyMove(m);
-    } else if(key==='S') scramble();
-    else if(key==='X') { cube = resetCube(); render(); saveState(); }
-    else if(key==='Z') undo();
-    else if(key==='Y') redo();
-  }
-  window.addEventListener('keydown', handleKey);
-
-  function scramble(){
-    const moves = ['U','D','L','R','F','B'];
-    let last = '';
-    const seq = [];
-    for(let i=0;i<25;i++){
-      let m;
-      do { m = moves[(Math.random()*6)|0]; } while(m===last);
-      last = m;
-      const mod = ['',"'",'2'][(Math.random()*3)|0];
-      seq.push(m+mod);
-    }
-    playAlgorithm(seq.join(' '));
-  }
-
-  function playAlgorithm(alg){
-    const tokens = alg.trim().split(/\s+/).filter(Boolean);
-    let p = Promise.resolve();
-    tokens.forEach(tok => {
-      p = p.then(()=> new Promise(res=>{ applyMove(tok); setTimeout(res, animationMs); }));
-    });
-  }
-
-  function undo(){
-    if(!history.length) return;
-    future.push(JSON.stringify(cube));
-    cube = JSON.parse(history.pop());
-    render();
-    saveState();
-  }
-  function redo(){
-    if(!future.length) return;
-    history.push(JSON.stringify(cube));
-    cube = JSON.parse(future.pop());
-    render();
-    saveState();
-  }
-
-  // UI hooks
-  document.querySelectorAll('.pad [data-move]').forEach(btn=>{
-    btn.addEventListener('click', () => applyMove(btn.dataset.move));
-  });
-  document.getElementById('btn-scramble').addEventListener('click', scramble);
-  document.getElementById('btn-reset').addEventListener('click', () => { cube=resetCube(); render(); saveState(); });
-  document.getElementById('btn-undo').addEventListener('click', undo);
-  document.getElementById('btn-redo').addEventListener('click', redo);
-
-  const helpDlg = document.getElementById('help');
-  document.getElementById('btn-help').addEventListener('click', ()=>helpDlg.showModal());
-  document.getElementById('btn-close-help').addEventListener('click', ()=>helpDlg.close());
-
-  // Export/Import
-  document.getElementById('btn-export').addEventListener('click', () => {
-    const blob = new Blob([JSON.stringify({cube, rotX, rotY}, null, 2)], {type:'application/json'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'rubikapp-state.json'; a.click();
-    URL.revokeObjectURL(url);
-  });
-  const fileImport = document.getElementById('file-import');
-  document.getElementById('btn-import').addEventListener('click', ()=>fileImport.click());
-  fileImport.addEventListener('change', async (e)=>{
-    const f = e.target.files[0];
-    if(!f) return;
-    const text = await f.text();
-    try{
-      const data = JSON.parse(text);
-      cube = data.cube || cube;
-      rotX = data.rotX ?? rotX;
-      rotY = data.rotY ?? rotY;
-      updateCamera();
-      render(); saveState();
-    }catch(err){ alert('Import non valido'); }
-  });
-
-  
-  // --- Mobile face rotate: long-press + swipe on a face ---
-  let pressTimer=null, pressStart=null, pressFace=null, gestureActive=false;
-  function faceFromTarget(target){
-    return target.closest('.face')?.classList?.[1] || null; // U,D,F,B,L,R
-  }
-  function onTouchStartFace(e){
-    const t = e.targetTouches[0];
-    const f = faceFromTarget(e.target);
-    if(!f) return;
-    pressStart = {x:t.clientX, y:t.clientY, time:Date.now()};
-    pressFace = f;
-    pressTimer = setTimeout(()=>{ gestureActive=true; }, 220); // long-press
-  }
-  function onTouchMoveFace(e){
-    if(!gestureActive) return;
-    e.preventDefault(); // we are in gesture, block page scroll
-    const t = e.targetTouches[0];
-    const dx = t.clientX - pressStart.x;
-    const dy = t.clientY - pressStart.y;
-    const absx = Math.abs(dx), absy = Math.abs(dy);
-    if (absx < 24 && absy < 24) return; // need a meaningful swipe
-    let move = null;
-    // Map swipe to cw/ccw on selected face (simple heuristic):
-    // horizontal right = cw for F, up = cw for U, etc.
-    const cw = (absx > absy) ? (dx > 0) : (dy < 0); // right or up -> cw
-    const base = pressFace;
-    move = base + (cw ? '' : "'");
-    applyMove(move);
-    gestureActive=false; clearTimeout(pressTimer);
-  }
-  function onTouchEndFace(){
-    clearTimeout(pressTimer);
-    gestureActive=false; pressFace=null;
-  }
-  sceneEl.addEventListener('touchstart', onTouchStartFace, {passive:true});
-  sceneEl.addEventListener('touchmove', onTouchMoveFace, {passive:false});
-  sceneEl.addEventListener('touchend', onTouchEndFace);
-
-  // Boot
-  loadState();
-  render();
+function loop(){ renderer.render(scene,camera); requestAnimationFrame(loop); }
+onResize(); loop();
 })();
