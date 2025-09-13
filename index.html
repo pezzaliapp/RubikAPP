@@ -3,10 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>RubikApp 3D — Pro</title>
+  <title>RubikApp 3D — Pro (Diag)</title>
   <meta name="theme-color" content="#0b5fff">
   <link rel="icon" href="icons/icon-192.png">
   <link rel="stylesheet" href="style.css">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
 </head>
 <body>
 <header class="topbar">
@@ -25,11 +28,20 @@
     <div><strong>Mosse:</strong> <span id="move-count">0</span></div>
     <div class="alg"><code id="move-alg"></code></div>
     <p class="hint">Touch: trascina su una faccia per ruotare lo strato. Tasti: U D L R F B (+ ' o 2).</p>
+    <pre id="diag" class="diag" aria-live="polite"></pre>
   </div>
 </main>
 <footer>
-  <small>Three.js 0.150.0 via CDN — colori con sticker & polygonOffset, compatibile iPhone/Mac.</small>
+  <small>Three.js 0.150.0 via CDN — diagnostica attiva. Nessun service worker.</small>
 </footer>
+<script>
+// Disattiva qualunque SW residuo su questo scope
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations?.().then(list => {
+    list.forEach(r => { try { if (r.scope && location.pathname.startsWith(new URL(r.scope).pathname)) r.unregister(); } catch(e){} });
+  });
+}
+</script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.150.0/build/three.min.js"></script>
 <script src="app.js"></script>
 </body>
