@@ -13,7 +13,7 @@ camera.position.set(4.2, 3.8, 5.8);
 camera.lookAt(0,0,0);
 
 const renderer = new THREE.WebGLRenderer({antialias:true, alpha:false});
-renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.NoToneMapping;
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(stage.clientWidth, stage.clientHeight);
