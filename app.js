@@ -9,19 +9,9 @@
     camo:    { U:0xd7dfcd, D:0xb5a96b, F:0x6b8f3e, B:0x3d5a80, L:0x8f6f3d, R:0x8b3a3a },
     rain:    { U:0xe6f3ff, D:0xfff4d6, F:0xb2f2bb, B:0xbde0fe, L:0xffd6a5, R:0xffadad }
   };
-  let THEME = (function(){
-    try{ return localStorage.getItem('rubik_theme') || 'classic'; }catch(e){ return 'classic'; }
-  })();
-  function setTheme(name){
-    if(!PALETTES[name]) return;
-    THEME = name;
-    try{ localStorage.setItem('rubik_theme', name); }catch(e){}
-    // repaint stickers in-place
-    repaintStickers();
-  }
-  function getStickerColor(face){
-    return PALETTES[THEME][face];
-  }
+  let THEME = (function(){ try{ return localStorage.getItem('rubik_theme') || 'classic'; }catch(e){ return 'classic'; } })();
+  function setTheme(name){ if(!PALETTES[name]) return; THEME=name; try{ localStorage.setItem('rubik_theme',name);}catch(e){} repaintStickers(); }
+  function getStickerColor(face){ return PALETTES[THEME][face]; }
 
   // --- helpers ---
   const nearly=(a,b,eps=1e-4)=>Math.abs(a-b)<eps;
@@ -45,8 +35,10 @@
   renderer.setSize(stage.clientWidth, stage.clientHeight);
   stage.appendChild(renderer.domElement);
 
-  scene.add(new THREE.AmbientLight(0xffffff, .9));
-  const key=new THREE.DirectionalLight(0xffffff, .85); key.position.set(4,7,6); scene.add(key);
+  // luci: più uniforme
+  scene.add(new THREE.AmbientLight(0xffffff, 1.0));
+  const key=new THREE.DirectionalLight(0xffffff, 0.7); key.position.set(4,7,6); scene.add(key);
+  const hemi=new THREE.HemisphereLight(0xffffff, 0x20232c, 0.25); scene.add(hemi);
 
   function onResize(){
     const w=stage.clientWidth, h=stage.clientHeight;
@@ -64,19 +56,28 @@
     const g=new THREE.PlaneGeometry(0.965, 0.965);
     const m=new THREE.MeshBasicMaterial({
       color:getStickerColor(face),
-      side:THREE.DoubleSide, depthTest:true, depthWrite:false,
+      side:THREE.DoubleSide,
+      depthTest:true,
+      depthWrite:false,
       polygonOffset:true, polygonOffsetFactor:-6, polygonOffsetUnits:-6
     });
-    const s=new THREE.Mesh(g,m); s.renderOrder=3; s.frustumCulled=false; s.userData.face = face;
+    const s=new THREE.Mesh(g,m);
+    s.renderOrder=3;
+    s.frustumCulled=false;
+    s.userData.face = face;
     const d=0.515;
     if(axis==='x'){ s.position.x=sign*d; s.rotation.y=-sign*Math.PI/2; }
     if(axis==='y'){ s.position.y=sign*d; s.rotation.x= sign*Math.PI/2; }
     if(axis==='z'){ s.position.z=sign*d; if(sign<0) s.rotation.y=Math.PI; }
     return s;
   }
+
   function addCubelet(i,j,k){
-    const plastic=new THREE.MeshStandardMaterial({ color:0x20232c, metalness:.1, roughness:.6 });
-    const mesh=new THREE.Mesh(geo,[plastic,plastic,plastic,plastic,plastic,plastic].map(m=>m.clone()));
+    const plastic = new THREE.MeshLambertMaterial({ color:0x20232c });
+    const mesh = new THREE.Mesh(geo, [
+      plastic.clone(), plastic.clone(), plastic.clone(),
+      plastic.clone(), plastic.clone(), plastic.clone()
+    ]);
     mesh.frustumCulled=false;
     const s=size+gap;
     mesh.position.set(i*s, j*s, k*s);
@@ -97,7 +98,6 @@
   buildSolved(); onResize();
 
   function repaintStickers(){
-    // Aggiorna dinamicamente i materiali degli sticker in base al tema
     for(const m of cubelets){
       for(const c of m.children){
         if(c.userData && c.userData.face){
@@ -140,8 +140,25 @@
   window.addEventListener('touchmove', onMove, {passive:true});
   window.addEventListener('touchend', onUp);
 
+  function bakeGroup(layer, group){
+    const s=size+gap;
+    layer.forEach(m => root.attach(m));
+    scene.remove(group);
+    layer.forEach(m => {
+      const c = m.userData.coord;
+      m.position.set(Math.round(c.x)*s, Math.round(c.y)*s, Math.round(c.z)*s);
+      m.rotation.x = snap90(m.rotation.x);
+      m.rotation.y = snap90(m.rotation.y);
+      m.rotation.z = snap90(m.rotation.z);
+      if (m.geometry && m.geometry.computeVertexNormals) m.geometry.computeVertexNormals();
+      m.updateMatrixWorld(true);
+    });
+    renderer.render(scene,camera);
+  }
+
   function rotateLayer(axisChar, layerCoord, sign){
-    if(rotating) return; rotating=true;
+    if(rotating) return;
+    rotating=true;
     const axis = axisChar==='X'? new THREE.Vector3(1,0,0) : axisChar==='Y'? new THREE.Vector3(0,1,0) : new THREE.Vector3(0,0,1);
     const pick = axisChar==='X'? m=>nearly(m.userData.coord.x,layerCoord) : axisChar==='Y'? m=>nearly(m.userData.coord.y,layerCoord) : m=>nearly(m.userData.coord.z,layerCoord);
 
@@ -159,16 +176,9 @@
     requestAnimationFrame(anim);
 
     function bake(){
-      const s=size+gap;
       layer.forEach(m=>{ m.userData.coord.copy( rotateCoord(m.userData.coord, axisChar, sign) ); });
-      layer.forEach(m=>root.attach(m)); scene.remove(group);
-      layer.forEach(m=>{
-        const c=m.userData.coord; m.position.set(c.x*s, c.y*s, c.z*s);
-        if(axisChar==='X') m.rotation.x = snap90(m.rotation.x + sign*Math.PI/2);
-        if(axisChar==='Y') m.rotation.y = snap90(m.rotation.y + sign*Math.PI/2);
-        if(axisChar==='Z') m.rotation.z = snap90(m.rotation.z + sign*Math.PI/2);
-      });
-      rotating=false; renderer.render(scene,camera);
+      bakeGroup(layer, group);
+      rotating=false;
     }
   }
 
@@ -199,11 +209,9 @@
     }
   });
 
-  // theme UI
   const sel = document.getElementById('theme');
   sel.value = THEME;
   sel.addEventListener('change', e=> setTheme(e.target.value));
-  // initial paint (in caso di reload)
   repaintStickers();
 
   (function loop(){ renderer.render(scene,camera); requestAnimationFrame(loop) })();
