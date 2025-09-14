@@ -1,127 +1,28 @@
 <!doctype html>
 <html lang="it">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>RubikApp 3D — patch discreta</title>
-<style>
-  body{margin:0;font-family:sans-serif;background:#1f2430;color:#fff}
-  header{background:#0b5fff;padding:8px;display:flex;gap:8px;align-items:center}
-  header h1{font-size:1rem;margin:0;margin-right:auto}
-  button{border:0;border-radius:8px;padding:6px 10px;font-weight:700;cursor:pointer}
-  #stage{width:100%;height:calc(100vh - 120px);background:#2a3142;touch-action:none}
-  #hud{padding:8px;background:#111;font-size:14px}
-  #diag{font:12px monospace;max-height:120px;overflow:auto;background:#000;color:#0f0;padding:4px}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>RubikApp — minimal</title>
+  <meta name="theme-color" content="#0b5fff">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header>
-  <h1>RubikApp 3D</h1>
-  <button id="btn-scramble">Scramble</button>
-  <button id="btn-reset">Reset</button>
-</header>
-<div id="stage"></div>
-<div id="hud">
-  <div>Mosse: <span id="move-count">0</span></div>
-  <pre id="diag"></pre>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/three@0.150.0/build/three.min.js"></script>
-<script>
-const diag=document.getElementById('diag');
-function log(){diag.textContent+=[...arguments].join(' ')+"\n";}
-function nearly(a,b,eps=1e-4){return Math.abs(a-b)<eps;}
-function snap90(r){return Math.round(r/(Math.PI/2))*(Math.PI/2);}
-function rotateCoord(coord, axisChar, sign){
-  const x=coord.x,y=coord.y,z=coord.z;
-  if(axisChar==='X') return new THREE.Vector3(x, sign>0? z:-z, sign>0?-y:y);
-  if(axisChar==='Y') return new THREE.Vector3(sign>0?-z:z, y, sign>0?x:-x);
-  return new THREE.Vector3(sign>0?y:-y, sign>0?-x:x, z);
-}
-const stage=document.getElementById('stage');
-const scene=new THREE.Scene(); scene.background=new THREE.Color(0x2a3142);
-const camera=new THREE.PerspectiveCamera(45,1,0.5,100);
-camera.position.set(4.2,3.8,5.8);camera.lookAt(0,0,0);
-const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,logarithmicDepthBuffer:true});
-renderer.sortObjects=false; renderer.setSize(stage.clientWidth,stage.clientHeight);
-stage.appendChild(renderer.domElement);
-window.addEventListener('resize',()=>{camera.aspect=stage.clientWidth/stage.clientHeight;camera.updateProjectionMatrix();renderer.setSize(stage.clientWidth,stage.clientHeight);});
-scene.add(new THREE.AmbientLight(0xffffff,.9));
-const key=new THREE.DirectionalLight(0xffffff,.8);key.position.set(4,7,6);scene.add(key);
-const STICKER={U:0xffffff,D:0xffd000,F:0x00a74a,B:0x2f6ee6,L:0xff6c00,R:0xd80027};
-const size=0.98,gap=0.012,geo=new THREE.BoxGeometry(size,size,size);
-const root=new THREE.Group();scene.add(root);const cubelets=[];
-function makeSticker(color,axis,sign){
-  const g=new THREE.PlaneGeometry(0.965,0.965);
-  const m=new THREE.MeshBasicMaterial({color,side:THREE.DoubleSide,depthTest:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-6,polygonOffsetUnits:-6});
-  const s=new THREE.Mesh(g,m);s.frustumCulled=false;const d=0.515;
-  if(axis==='x'){s.position.x=sign*d;s.rotation.y=-sign*Math.PI/2;}
-  if(axis==='y'){s.position.y=sign*d;s.rotation.x= sign*Math.PI/2;}
-  if(axis==='z'){s.position.z=sign*d;if(sign<0)s.rotation.y=Math.PI;}
-  return s;
-}
-function addCubelet(i,j,k){
-  const plastic=new THREE.MeshStandardMaterial({color:0x20232c,metalness:.1,roughness:.6});
-  const mesh=new THREE.Mesh(geo,[plastic,plastic,plastic,plastic,plastic,plastic].map(m=>m.clone()));
-  mesh.frustumCulled=false;const s=size+gap;
-  mesh.position.set(i*s,j*s,k*s);mesh.userData.coord=new THREE.Vector3(i,j,k);
-  if(i=== 1) mesh.add(makeSticker(STICKER.R,'x',+1));
-  if(i===-1) mesh.add(makeSticker(STICKER.L,'x',-1));
-  if(j=== 1) mesh.add(makeSticker(STICKER.U,'y',+1));
-  if(j===-1) mesh.add(makeSticker(STICKER.D,'y',-1));
-  if(k=== 1) mesh.add(makeSticker(STICKER.F,'z',+1));
-  if(k===-1) mesh.add(makeSticker(STICKER.B,'z',-1));
-  root.add(mesh);cubelets.push(mesh);
-}
-function buildSolved(){while(root.children.length)root.remove(root.children[0]);cubelets.length=0;for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++)for(let k=-1;k<=1;k++)addCubelet(i,j,k);}
-buildSolved();
-let isOrbit=false,lastX=0,lastY=0,rotating=false,press=null;
-function orbitStart(x,y){isOrbit=true;lastX=x;lastY=y;}
-function orbitMove(x,y){if(!isOrbit||rotating)return;root.rotation.y+=(x-lastX)/120;root.rotation.x+=(y-lastY)/120;lastX=x;lastY=y;}
-function orbitEnd(){isOrbit=false;}
-const ray=new THREE.Raycaster(),ndc=new THREE.Vector2();
-function hitsAt(cx,cy){const r=renderer.domElement.getBoundingClientRect();ndc.x=((cx-r.left)/r.width)*2-1;ndc.y=-((cy-r.top)/r.height)*2+1;ray.setFromCamera(ndc,camera);const raw=ray.intersectObjects(root.children,true);return raw.map(h=>{let o=h.object;while(o&&o.parent&&o.parent!==root){o=o.parent}return {...h,object:o};});}
-function onDown(e){const t=e.touches?e.touches[0]:e;const hs=hitsAt(t.clientX,t.clientY);if(hs.length){press={hit:hs[0],x:t.clientX,y:t.clientY};}else{orbitStart(t.clientX,t.clientY);}}
-function onMove(e){const t=e.touches?e.touches[0]:e;if(isOrbit&&!rotating){orbitMove(t.clientX,t.clientY);return;}if(!press||rotating)return;const dx=t.clientX-press.x,dy=t.clientY-press.y;if(Math.hypot(dx,dy)>18){rotateFromGesture(press.hit,dx,dy);press=null;}}
-function onUp(){orbitEnd();press=null;}
-renderer.domElement.addEventListener('mousedown',onDown);window.addEventListener('mousemove',onMove);window.addEventListener('mouseup',onUp);
-renderer.domElement.addEventListener('touchstart',onDown,{passive:true});window.addEventListener('touchmove',onMove,{passive:true});window.addEventListener('touchend',onUp);
-function rotateLayer(axisChar,layerCoord,sign){
-  if(rotating)return;rotating=true;
-  const axis=axisChar==='X'?new THREE.Vector3(1,0,0):axisChar==='Y'?new THREE.Vector3(0,1,0):new THREE.Vector3(0,0,1);
-  const pick=axisChar==='X'?m=>nearly(m.userData.coord.x,layerCoord):axisChar==='Y'?m=>nearly(m.userData.coord.y,layerCoord):m=>nearly(m.userData.coord.z,layerCoord);
-  const group=new THREE.Group(),layer=[];cubelets.forEach(m=>{if(pick(m)){layer.push(m);group.attach(m);}});scene.add(group);
-  const target=(Math.PI/2)*sign,dur=200,t0=performance.now();
-  function anim(now){const t=Math.min(1,(now-t0)/dur);group.rotation.x=axis.x*target*t;group.rotation.y=axis.y*target*t;group.rotation.z=axis.z*target*t;renderer.render(scene,camera);if(t<1)requestAnimationFrame(anim);else bake();}
-  requestAnimationFrame(anim);
-  function bake(){
-    const s=size+gap;
-    layer.forEach(m=>{const newC=rotateCoord(m.userData.coord,axisChar,sign);m.userData.coord.copy(newC);});
-    layer.forEach(m=>root.attach(m));scene.remove(group);
-    layer.forEach(m=>{const c=m.userData.coord;m.position.set(c.x*s,c.y*s,c.z*s);
-      if(axisChar==='X')m.rotation.x=snap90(m.rotation.x+sign*Math.PI/2);
-      if(axisChar==='Y')m.rotation.y=snap90(m.rotation.y+sign*Math.PI/2);
-      if(axisChar==='Z')m.rotation.z=snap90(m.rotation.z+sign*Math.PI/2);});
-    rotating=false;renderer.render(scene,camera);
-  }
-}
-function rotateFromGesture(hit,dx,dy){
-  if(rotating)return;
-  const n=hit.face.normal.clone().applyMatrix3(new THREE.Matrix3().getNormalMatrix(hit.object.matrixWorld)).normalize();
-  const dom=Math.abs(dx)>Math.abs(dy)?'x':'y';let axisChar;
-  if(Math.abs(n.z)>0.9){axisChar=(dom==='x')?'Y':'X';}
-  else if(Math.abs(n.x)>0.9){axisChar=(dom==='x')?'Y':'Z';}
-  else{axisChar=(dom==='x')?'Z':'X';}
-  const sign=(dom==='x')?(dx>0?1:-1):(dy<0?1:-1);
-  const c=hit.object.userData.coord;
-  const layerCoord=axisChar==='X'?c.x:axisChar==='Y'?c.y:c.z;
-  rotateLayer(axisChar,layerCoord,sign);
-}
-document.getElementById('btn-reset').addEventListener('click',()=>{root.rotation.set(0,0,0);buildSolved();renderer.render(scene,camera);});
-document.getElementById('btn-scramble').addEventListener('click',async()=>{
-  if(rotating)return;
-  for(let i=0;i<20;i++){const rand=cubelets[(Math.random()*cubelets.length)|0];const fake={object:rand,face:{normal:new THREE.Vector3(0,0,1)}};const dx=(Math.random()>.5?1:-1)*30,dy=(Math.random()>.5?1:-1)*30;await new Promise(res=>{const iv=setInterval(()=>{if(!rotating){clearInterval(iv);res();}},18);rotateFromGesture(fake,dx,dy);});}
-});
-(function loop(){renderer.render(scene,camera);requestAnimationFrame(loop);})();
-</script>
+  <header class="bar">
+    <h1>RubikApp</h1>
+    <div class="actions">
+      <button id="btn-scramble">Scramble</button>
+      <button id="btn-reset">Reset</button>
+    </div>
+  </header>
+  <main>
+    <div id="stage" aria-label="Cubo 3D"></div>
+  </main>
+  <footer>Clean-room demo • Three.js CDN • No external assets</footer>
+
+  <!-- Three.js (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.150.0/build/three.min.js"></script>
+  <!-- App logic -->
+  <script src="app.js"></script>
 </body>
 </html>
