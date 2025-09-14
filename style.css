@@ -1,9 +1,11 @@
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
 body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial,sans-serif;background:#1f2430;color:#e8eefc}
-.bar{position:sticky;top:0;display:flex;align-items:center;gap:12px;padding:10px 14px;background:#0b5fff;color:#fff;box-shadow:0 2px 10px #0005}
+.bar{position:sticky;top:0;display:flex;align-items:center;gap:12px;padding:10px 14px;background:#0b5fff;color:#fff;box-shadow:0 2px 10px #0005;flex-wrap:wrap}
 .bar h1{font-size:1.05rem;margin:0;margin-right:auto}
 .bar button{border:0;border-radius:10px;padding:8px 12px;background:#fff;color:#0b5fff;font-weight:700;cursor:pointer;touch-action:manipulation}
+.bar select{border:0;border-radius:8px;padding:7px 10px;background:#fff;color:#0b5fff;font-weight:700}
+.sr{position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden}
 main{padding:10px}
 #stage{width:100%;height:calc(100vh - 140px);max-height:800px;background:#2a3142;border-radius:16px;overflow:hidden;touch-action:none}
 footer{padding:10px;text-align:center;color:#a9b7d0;font-size:12px}

@@ -1,6 +1,29 @@
 (function(){
   'use strict';
 
+  // ===== THEMES =====
+  const PALETTES = {
+    classic: { U:0xffffff, D:0xffd000, F:0x00a74a, B:0x2f6ee6, L:0xff6c00, R:0xd80027 },
+    erno:    { U:0xf7f7f7, D:0xffeb3b, F:0x2ecc71, B:0x3498db, L:0xff8f00, R:0xe53935 },
+    dust:    { U:0xe8e6e3, D:0xd7c37a, F:0x6da67a, B:0x6c8ebf, L:0xd28b52, R:0xc25c5c },
+    camo:    { U:0xd7dfcd, D:0xb5a96b, F:0x6b8f3e, B:0x3d5a80, L:0x8f6f3d, R:0x8b3a3a },
+    rain:    { U:0xe6f3ff, D:0xfff4d6, F:0xb2f2bb, B:0xbde0fe, L:0xffd6a5, R:0xffadad }
+  };
+  let THEME = (function(){
+    try{ return localStorage.getItem('rubik_theme') || 'classic'; }catch(e){ return 'classic'; }
+  })();
+  function setTheme(name){
+    if(!PALETTES[name]) return;
+    THEME = name;
+    try{ localStorage.setItem('rubik_theme', name); }catch(e){}
+    // repaint stickers in-place
+    repaintStickers();
+  }
+  function getStickerColor(face){
+    return PALETTES[THEME][face];
+  }
+
+  // --- helpers ---
   const nearly=(a,b,eps=1e-4)=>Math.abs(a-b)<eps;
   const snap90 = r => Math.round(r/(Math.PI/2))*(Math.PI/2);
   function rotateCoord(v,axis,sign){
@@ -10,6 +33,7 @@
     return               new THREE.Vector3(sign>0? y:-y, sign>0?-x:x, z);
   }
 
+  // --- scene ---
   const stage=document.getElementById('stage');
   const scene=new THREE.Scene(); scene.background=new THREE.Color(0x2a3142);
   const camera=new THREE.PerspectiveCamera(45, 1, 0.5, 100);
@@ -32,14 +56,18 @@
   window.addEventListener('resize', onResize, {passive:true});
   new ResizeObserver(onResize).observe(stage);
 
-  const STICKER = { U:0xffffff, D:0xffd000, F:0x00a74a, B:0x2f6ee6, L:0xff6c00, R:0xd80027 };
+  // --- cube build ---
   const size=0.98, gap=0.012, geo=new THREE.BoxGeometry(size,size,size);
   const root=new THREE.Group(); scene.add(root); const cubelets=[];
 
-  function makeSticker(color, axis, sign){
+  function makeSticker(face, axis, sign){
     const g=new THREE.PlaneGeometry(0.965, 0.965);
-    const m=new THREE.MeshBasicMaterial({color, side:THREE.DoubleSide, depthTest:true, depthWrite:false, polygonOffset:true, polygonOffsetFactor:-6, polygonOffsetUnits:-6});
-    const s=new THREE.Mesh(g,m); s.renderOrder=3; s.frustumCulled=false;
+    const m=new THREE.MeshBasicMaterial({
+      color:getStickerColor(face),
+      side:THREE.DoubleSide, depthTest:true, depthWrite:false,
+      polygonOffset:true, polygonOffsetFactor:-6, polygonOffsetUnits:-6
+    });
+    const s=new THREE.Mesh(g,m); s.renderOrder=3; s.frustumCulled=false; s.userData.face = face;
     const d=0.515;
     if(axis==='x'){ s.position.x=sign*d; s.rotation.y=-sign*Math.PI/2; }
     if(axis==='y'){ s.position.y=sign*d; s.rotation.x= sign*Math.PI/2; }
@@ -53,12 +81,12 @@
     const s=size+gap;
     mesh.position.set(i*s, j*s, k*s);
     mesh.userData.coord=new THREE.Vector3(i,j,k);
-    if(i=== 1) mesh.add(makeSticker(STICKER.R,'x',+1));
-    if(i===-1) mesh.add(makeSticker(STICKER.L,'x',-1));
-    if(j=== 1) mesh.add(makeSticker(STICKER.U,'y',+1));
-    if(j===-1) mesh.add(makeSticker(STICKER.D,'y',-1));
-    if(k=== 1) mesh.add(makeSticker(STICKER.F,'z',+1));
-    if(k===-1) mesh.add(makeSticker(STICKER.B,'z',-1));
+    if(i=== 1) mesh.add(makeSticker('R','x',+1));
+    if(i===-1) mesh.add(makeSticker('L','x',-1));
+    if(j=== 1) mesh.add(makeSticker('U','y',+1));
+    if(j===-1) mesh.add(makeSticker('D','y',-1));
+    if(k=== 1) mesh.add(makeSticker('F','z',+1));
+    if(k===-1) mesh.add(makeSticker('B','z',-1));
     root.add(mesh); cubelets.push(mesh);
   }
   function buildSolved(){
@@ -68,6 +96,20 @@
   }
   buildSolved(); onResize();
 
+  function repaintStickers(){
+    // Aggiorna dinamicamente i materiali degli sticker in base al tema
+    for(const m of cubelets){
+      for(const c of m.children){
+        if(c.userData && c.userData.face){
+          const hex = getStickerColor(c.userData.face);
+          if(c.material && c.material.color) c.material.color.setHex(hex);
+        }
+      }
+    }
+    renderer.render(scene,camera);
+  }
+
+  // --- interaction ---
   let isOrbit=false, lastX=0, lastY=0, rotating=false, press=null;
   function orbitStart(x,y){ isOrbit=true; lastX=x; lastY=y; }
   function orbitMove(x,y){
@@ -145,7 +187,7 @@
   }
 
   document.getElementById('btn-reset').addEventListener('click', ()=>{
-    root.rotation.set(0,0,0); buildSolved(); renderer.render(scene,camera);
+    root.rotation.set(0,0,0); buildSolved(); repaintStickers(); renderer.render(scene,camera);
   });
   document.getElementById('btn-scramble').addEventListener('click', async ()=>{
     if(rotating) return;
@@ -156,6 +198,13 @@
       await new Promise(res=>{ const iv=setInterval(()=>{ if(!rotating){ clearInterval(iv); res(); } }, 18); rotateFromGesture(fake,dx,dy); });
     }
   });
+
+  // theme UI
+  const sel = document.getElementById('theme');
+  sel.value = THEME;
+  sel.addEventListener('change', e=> setTheme(e.target.value));
+  // initial paint (in caso di reload)
+  repaintStickers();
 
   (function loop(){ renderer.render(scene,camera); requestAnimationFrame(loop) })();
 })();
