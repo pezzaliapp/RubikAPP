@@ -1,30 +1,219 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>RubikApp 3D — layer reali</title>
-  <meta name="theme-color" content="#0b5fff">
-  <link rel="icon" href="icons/icon-192.png">
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <title>Rubik's Cube Simulator — 2D</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{ --bg:#222; --panel:#2b2b2b; --text:#fff; --muted:#aaa; --btn:#fff; --btnText:#222; --grid:30px }
+    *{ box-sizing:border-box }
+    body{ margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg); color:var(--text) }
+    header{ padding:12px 16px; background:#0b5fff; font-weight:700 }
+    main{ max-width:880px; margin:0 auto; padding:16px }
+    #cube{ display:grid; grid-template-columns:auto auto; gap:18px; align-items:start }
+    .face-wrap{ display:flex; flex-direction:column; align-items:center }
+    .face-label{ margin:4px 0 6px; font-weight:700; letter-spacing:.5px }
+    .face{ display:grid; grid-template-columns:repeat(3, var(--grid)); gap:2px; background:#111; padding:2px; border-radius:6px }
+    .sticker{ width:var(--grid); height:var(--grid); border:1px solid #0006; border-radius:4px }
+    #controls{ margin-top:18px; background:var(--panel); padding:12px; border-radius:12px; display:flex; flex-wrap:wrap; gap:8px; align-items:center }
+    button{ appearance:none; border:0; border-radius:10px; padding:8px 12px; background:var(--btn); color:var(--btnText); font-weight:700; cursor:pointer; touch-action:manipulation }
+    button:active{ transform:translateY(1px) }
+    .group{ display:flex; gap:6px; align-items:center }
+    .grow{ flex:1 }
+    input[type="text"]{ width:100%; padding:8px 10px; border-radius:10px; border:1px solid #444; background:#111; color:#eee; font-size:14px }
+    small.muted{ color:var(--muted) }
+  </style>
 </head>
 <body>
-<header class="topbar">
-  <h1>RubikApp 3D</h1>
-  <nav class="controls">
-    <button id="btn-scramble">Scramble</button>
-    <button id="btn-reset">Reset</button>
-  </nav>
-</header>
-<main>
-  <div id="stage"></div>
-  <p class="hint">Tocca e trascina una faccia per ruotare lo strato. Trascina sullo sfondo per ruotare la vista.</p>
-</main>
-<footer>
-  <small>Three.js 0.150.0 via CDN. Aggiungeremo PWA offline in seguito.</small>
-</footer>
-<!-- CDN stabile -->
-<script src="https://unpkg.com/three@0.150.0/build/three.min.js"></script>
-<script src="app.js"></script>
+  <header>Rubik's Cube – Simulatore 2D (touch + tastiera + alg)</header>
+
+  <main>
+    <div id="cube" aria-label="rete 2D del cubo"></div>
+
+    <div id="controls">
+      <div class="group">
+        <button onclick="doMove('U')">U</button>
+        <button onclick="doMove(`U'`)">U'</button>
+        <button onclick="doMove('U2')">U2</button>
+      </div>
+      <div class="group">
+        <button onclick="doMove('R')">R</button>
+        <button onclick="doMove(`R'`)">R'</button>
+        <button onclick="doMove('R2')">R2</button>
+      </div>
+      <div class="group">
+        <button onclick="doMove('F')">F</button>
+        <button onclick="doMove(`F'`)">F'</button>
+        <button onclick="doMove('F2')">F2</button>
+      </div>
+      <div class="group">
+        <button onclick="doMove('L')">L</button>
+        <button onclick="doMove(`L'`)">L'</button>
+        <button onclick="doMove('L2')">L2</button>
+      </div>
+      <div class="group">
+        <button onclick="doMove('B')">B</button>
+        <button onclick="doMove(`B'`)">B'</button>
+        <button onclick="doMove('B2')">B2</button>
+      </div>
+      <div class="group">
+        <button onclick="doMove('D')">D</button>
+        <button onclick="doMove(`D'`)">D'</button>
+        <button onclick="doMove('D2')">D2</button>
+      </div>
+
+      <div class="group grow" style="min-width:220px">
+        <input id="alg" type="text" placeholder="Algoritmo (es. R U R' U' F2)" />
+      </div>
+      <div class="group">
+        <button onclick="runAlg()">Esegui</button>
+        <button onclick="scramble()">Scramble</button>
+        <button onclick="resetCube()">Reset</button>
+      </div>
+      <div class="group"><small class="muted">Suggerimento: premi U,D,L,R,F,B da tastiera (con Shift/Alt per l’inversa).</small></div>
+    </div>
+
+    <p id="touchInfo"><small class="muted">Swipe destra/sinistra sull’area del cubo per ruotare la faccia Front (F).</small></p>
+  </main>
+
+  <script>
+    // === Modello 2D =========================================================
+    const colors = {U:'white', R:'red', F:'green', D:'yellow', L:'orange', B:'blue'};
+    let cube = {
+      U: Array(9).fill('U'),
+      R: Array(9).fill('R'),
+      F: Array(9).fill('F'),
+      D: Array(9).fill('D'),
+      L: Array(9).fill('L'),
+      B: Array(9).fill('B'),
+    };
+
+    function drawCube(){
+      const cubeEl = document.getElementById('cube');
+      cubeEl.innerHTML = '';
+      ['U','L','F','R','B','D'].forEach(face=>{
+        const wrap = document.createElement('div');
+        wrap.className = 'face-wrap';
+        const lab = document.createElement('div');
+        lab.className = 'face-label';
+        lab.textContent = face;
+        const grid = document.createElement('div');
+        grid.className = 'face';
+        cube[face].forEach(st=>{
+          const s = document.createElement('div');
+          s.className = 'sticker';
+          s.style.background = colors[st];
+          grid.appendChild(s);
+        });
+        wrap.appendChild(lab);
+        wrap.appendChild(grid);
+        cubeEl.appendChild(wrap);
+      });
+    }
+
+    function resetCube(){
+      cube = { U:Array(9).fill('U'), R:Array(9).fill('R'),
+               F:Array(9).fill('F'), D:Array(9).fill('D'),
+               L:Array(9).fill('L'), B:Array(9).fill('B') };
+      drawCube();
+    }
+
+    // === Rotazioni base =====================================================
+    const TOP=[0,1,2], BOTTOM=[6,7,8], LEFT=[0,3,6], RIGHT=[2,5,8];
+
+    function rotateFace(face, dir=1){
+      const a = cube[face].slice();
+      if(dir===1)  cube[face]=[a[6],a[3],a[0], a[7],a[4],a[1], a[8],a[5],a[2]];
+      if(dir===-1) cube[face]=[a[2],a[5],a[8], a[1],a[4],a[7], a[0],a[3],a[6]];
+    }
+    function take(face, idxs, rev=false){ const v=idxs.map(i=>cube[face][i]); return rev?v.reverse():v; }
+    function put(face, idxs, vals){ for(let i=0;i<idxs.length;i++) cube[face][idxs[i]] = vals[i]; }
+    function cycleRing(ring, dir=1){
+      // ring = [{f,idx,rev?}, ... x4]
+      const vals = ring.map(x=>take(x.f,x.idx,!!x.rev));
+      const from = vals.map((_,i)=>vals[(i-(dir===1?1:3)+4)%4]); // rotate source
+      for(let i=0;i<4;i++) put(ring[i].f, ring[i].idx, from[i]);
+    }
+
+    function move(face, dir=1){
+      dir = dir>=0 ? 1 : -1;
+
+      if(face==='U'){
+        rotateFace('U', dir);
+        cycleRing([{f:'F',idx:TOP},{f:'R',idx:TOP},{f:'B',idx:TOP},{f:'L',idx:TOP}], dir);
+      } else if(face==='D'){
+        rotateFace('D', dir);
+        cycleRing([{f:'F',idx:BOTTOM},{f:'L',idx:BOTTOM},{f:'B',idx:BOTTOM},{f:'R',idx:BOTTOM}], dir);
+      } else if(face==='R'){
+        rotateFace('R', dir);
+        cycleRing([{f:'F',idx:RIGHT},{f:'U',idx:RIGHT},{f:'B',idx:LEFT,rev:true},{f:'D',idx:RIGHT}], dir);
+      } else if(face==='L'){
+        rotateFace('L', dir);
+        cycleRing([{f:'F',idx:LEFT},{f:'D',idx:LEFT},{f:'B',idx:RIGHT,rev:true},{f:'U',idx:LEFT}], dir);
+      } else if(face==='F'){
+        rotateFace('F', dir);
+        cycleRing([{f:'U',idx:BOTTOM},{f:'R',idx:LEFT},{f:'D',idx:TOP,rev:true},{f:'L',idx:RIGHT}], dir);
+      } else if(face==='B'){
+        rotateFace('B', dir);
+        cycleRing([{f:'U',idx:TOP},{f:'L',idx:LEFT},{f:'D',idx:BOTTOM,rev:true},{f:'R',idx:RIGHT}], dir);
+      }
+
+      drawCube();
+    }
+
+    // === Comandi utente =====================================================
+    function doMove(tok){
+      // tok: "R", "R'", "R2"
+      const base = tok[0];
+      const prime = tok.includes("'");
+      const dbl   = tok.includes('2');
+      if(dbl){ move(base, +1); move(base, +1); }
+      else   { move(base, prime ? -1 : +1); }
+    }
+
+    function parseAlg(s){
+      return s.trim().toUpperCase().split(/\s+/).filter(Boolean);
+    }
+    async function runAlg(){
+      const s = document.getElementById('alg').value || '';
+      const seq = parseAlg(s);
+      for(const t of seq){ doMove(t); await new Promise(r=>setTimeout(r,60)); }
+    }
+
+    function scramble(){
+      const faces=['U','D','L','R','F','B'];
+      let last=null, seq=[];
+      for(let i=0;i<20;i++){
+        let f; do{ f = faces[(Math.random()*6)|0]; } while(f===last); last=f;
+        const mod = Math.random()<0.33 ? "'" : (Math.random()<0.5 ? '2' : '');
+        seq.push(f+mod);
+      }
+      document.getElementById('alg').value = seq.join(' ');
+      runAlg();
+    }
+
+    // Tastiera: U D L R F B (+ Shift/Alt = antioraria)
+    window.addEventListener('keydown', e=>{
+      const k = e.key.toUpperCase();
+      if(!'UDLRFB'.includes(k)) return;
+      doMove(k + (e.shiftKey||e.altKey ? "'" : ''));
+    });
+
+    // Swipe touch sull'area del cubo → F / F'
+    let startX=null;
+    const cubeDiv=document.getElementById('cube');
+    cubeDiv.addEventListener('touchstart', e=>{
+      if(e.touches.length===1) startX=e.touches[0].clientX;
+    }, {passive:true});
+    cubeDiv.addEventListener('touchend', e=>{
+      if(startX===null) return;
+      const dx = e.changedTouches[0].clientX - startX;
+      if(Math.abs(dx)>30) doMove(dx>0?'F':"F'");
+      startX=null;
+    });
+
+    // Init
+    drawCube();
+  </script>
 </body>
 </html>
