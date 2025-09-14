@@ -48,103 +48,83 @@
 
 <footer><small>Three.js via CDN. Nessun service worker. Stickers anti z-fighting.</small></footer>
 
-<!-- loader three.js con fallback -->
+<!-- loader three.js -->
 <script>
-const diag = document.getElementById('diag'); function log(){const s=[].slice.call(arguments).join(' ');diag.textContent+=s+"\n";console.log.apply(console,arguments)}
-window.addEventListener('error',e=>log('JS ERROR:',e.message,'@',e.filename, e.lineno, e.colno));
+const diag=document.getElementById('diag');
+function log(){const s=[...arguments].join(' ');diag.textContent+=s+"\\n";console.log(...arguments);}
+window.addEventListener('error',e=>log('JS ERROR:',e.message,'@',e.filename,e.lineno,e.colno));
 (async function(){
-  const CDNS=[
+  const urls=[
     "https://cdn.jsdelivr.net/npm/three@0.150.0/build/three.min.js",
     "https://unpkg.com/three@0.150.0/build/three.min.js",
     "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.150.0/three.min.js"
   ];
   let ok=false;
-  for(const url of CDNS){
+  for(const u of urls){
     try{
-      await new Promise((res,rej)=>{const s=document.createElement('script');s.src=url;s.onload=res;s.onerror=()=>rej(url);document.head.appendChild(s);});
-      if(window.THREE){log('THREE r'+THREE.REVISION+' OK'); ok=true; break;}
-    }catch(e){log('CDN fallita:',e)}
+      await new Promise((res,rej)=>{const s=document.createElement('script');s.src=u;s.onload=res;s.onerror=()=>rej(u);document.head.appendChild(s);});
+      if(window.THREE){log('THREE r'+THREE.REVISION+' OK');ok=true;break;}
+    }catch(e){log('CDN fallita',e)}
   }
-  if(!ok){log('Impossibile caricare Three.js'); return;}
+  if(!ok){log('Impossibile caricare Three.js');return;}
   startApp();
 })();
 </script>
 
-<!-- app 3D -->
 <script>
 function startApp(){
 'use strict';
-
-/* === colori sticker === */
 const STICKER={U:0xffffff,D:0xffd000,F:0x00a74a,B:0x2f6ee6,L:0xff6c00,R:0xd80027};
 
-/* === scena === */
 const stage=document.getElementById('stage');
 const scene=new THREE.Scene();
 scene.background=new THREE.Color(0x2a3142);
 
-const camera=new THREE.PerspectiveCamera(45,1,0.1,100);
+// camera con near più alto
+const camera=new THREE.PerspectiveCamera(45,1,0.5,100);
 camera.position.set(4.2,3.8,5.8); camera.lookAt(0,0,0);
 
-const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});
-renderer.outputColorSpace = THREE.SRGBColorSpace;
+// renderer con log depth buffer
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,logarithmicDepthBuffer:true});
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+renderer.sortObjects=false;
 renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
 renderer.setSize(stage.clientWidth, stage.clientHeight);
 stage.appendChild(renderer.domElement);
 
 scene.add(new THREE.AmbientLight(0xffffff,.9));
-const key=new THREE.DirectionalLight(0xffffff,.8); key.position.set(4,7,6); scene.add(key);
+const key=new THREE.DirectionalLight(0xffffff,.8);key.position.set(4,7,6);scene.add(key);
 
-function onResize(){const w=stage.clientWidth, h=stage.clientHeight; camera.aspect=w/h; camera.updateProjectionMatrix(); renderer.setSize(w,h); renderer.render(scene,camera);}
-window.addEventListener('resize', onResize, {passive:true});
+function onResize(){const w=stage.clientWidth,h=stage.clientHeight;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h);renderer.render(scene,camera);}
+window.addEventListener('resize',onResize,{passive:true});
 
-/* === util === */
-const nearly=(a,b)=>Math.abs(a-b)<1e-4;
-const snap90=r=>Math.round(r/(Math.PI/2))*(Math.PI/2);
-
-/* === cubo === */
-const size=0.98, gap=0.012;
-const geo=new THREE.BoxGeometry(size,size,size);
-const root=new THREE.Group(); scene.add(root);
-const cubelets=[];
-
-function makeSticker(color, axis, sign){
+// === cube building ===
+const size=0.98,gap=0.012,geo=new THREE.BoxGeometry(size,size,size);
+const root=new THREE.Group();scene.add(root);const cubelets=[];
+function makeSticker(color,axis,sign){
   const g=new THREE.PlaneGeometry(0.965,0.965);
-  const m=new THREE.MeshBasicMaterial({
-    color, side:THREE.DoubleSide,
-    depthTest:true, depthWrite:false,
-    polygonOffset:true, polygonOffsetFactor:-6, polygonOffsetUnits:-6
-  });
-  const s=new THREE.Mesh(g,m); s.renderOrder=3;
+  const m=new THREE.MeshBasicMaterial({color,side:THREE.DoubleSide,depthTest:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-6,polygonOffsetUnits:-6});
+  const s=new THREE.Mesh(g,m);s.renderOrder=3;s.frustumCulled=false;
   const d=0.515;
-  if(axis==='x'){ s.position.x=sign*d; s.rotation.y=-sign*Math.PI/2; }
-  if(axis==='y'){ s.position.y=sign*d; s.rotation.x= sign*Math.PI/2; }
-  if(axis==='z'){ s.position.z=sign*d; if(sign<0) s.rotation.y=Math.PI; }
+  if(axis==='x'){s.position.x=sign*d;s.rotation.y=-sign*Math.PI/2;}
+  if(axis==='y'){s.position.y=sign*d;s.rotation.x= sign*Math.PI/2;}
+  if(axis==='z'){s.position.z=sign*d;if(sign<0)s.rotation.y=Math.PI;}
   return s;
 }
-
 function addCubelet(i,j,k){
-  const plastic=new THREE.MeshStandardMaterial({color:0x20232c,metalness:0.1,roughness:0.6});
+  const plastic=new THREE.MeshStandardMaterial({color:0x20232c,metalness:.1,roughness:.6});
   const mesh=new THREE.Mesh(geo,[plastic,plastic,plastic,plastic,plastic,plastic].map(m=>m.clone()));
-  const s=size+gap;
-  mesh.position.set(i*s,j*s,k*s);
-  mesh.userData.coord=new THREE.Vector3(i,j,k);
-  if(i=== 1) mesh.add(makeSticker(STICKER.R,'x',+1));
-  if(i===-1) mesh.add(makeSticker(STICKER.L,'x',-1));
-  if(j=== 1) mesh.add(makeSticker(STICKER.U,'y',+1));
-  if(j===-1) mesh.add(makeSticker(STICKER.D,'y',-1));
-  if(k=== 1) mesh.add(makeSticker(STICKER.F,'z',+1));
-  if(k===-1) mesh.add(makeSticker(STICKER.B,'z',-1));
-  root.add(mesh); cubelets.push(mesh);
+  mesh.frustumCulled=false;
+  const s=size+gap;mesh.position.set(i*s,j*s,k*s);mesh.userData.coord=new THREE.Vector3(i,j,k);
+  if(i=== 1)mesh.add(makeSticker(STICKER.R,'x',+1));
+  if(i===-1)mesh.add(makeSticker(STICKER.L,'x',-1));
+  if(j=== 1)mesh.add(makeSticker(STICKER.U,'y',+1));
+  if(j===-1)mesh.add(makeSticker(STICKER.D,'y',-1));
+  if(k=== 1)mesh.add(makeSticker(STICKER.F,'z',+1));
+  if(k===-1)mesh.add(makeSticker(STICKER.B,'z',-1));
+  root.add(mesh);cubelets.push(mesh);
 }
-
-function buildSolved(){
-  while(root.children.length) root.remove(root.children[0]);
-  cubelets.length=0;
-  for(let i=-1;i<=1;i++) for(let j=-1;j<=1;j++) for(let k=-1;k<=1;k++) addCubelet(i,j,k);
-  log('Cubelets:', cubelets.length);
-}
-
+function buildSolved(){while(root.children.length)root.remove(root.children[0]);cubelets.length=0;for(let i=-1;i<=1;i++)for(let j=-1;j<=1;j++)for(let k=-1;k<=1;k++)addCubelet(i,j,k);}
 /* === input: orbit vs rotazione layer === */
 let isOrbit=false, lastX=0,lastY=0, rotating=false, press=null;
 function orbitStart(x,y){isOrbit=true;lastX=x;lastY=y}
@@ -296,9 +276,9 @@ document.getElementById('btn-redo').addEventListener('click', ()=>{
 document.getElementById('btn-run').addEventListener('click', ()=>runAlgStr(document.getElementById('alg').value||''));
 
 /* === avvio === */
-buildSolved(); onResize();
-(function loop(){ renderer.render(scene,camera); requestAnimationFrame(loop) })();
-log('Init ok');
+buildSolved();onResize();
+(function loop(){renderer.render(scene,camera);requestAnimationFrame(loop)})();
+log("Init ok");
 }
 </script>
 </body>
