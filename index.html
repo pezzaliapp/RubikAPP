@@ -1,32 +1,22 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>RubikApp — fix sticker/lighting</title>
-  <meta name="theme-color" content="#0b5fff">
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <title>RubikApp 3D</title>
+  <style>
+    body { margin:0; background:#2a3142; color:#fff; font-family:sans-serif; }
+    header { background:#0b5fff; padding:10px; display:flex; gap:10px; align-items:center; }
+    header h1 { flex:1; font-size:1.2rem; margin:0; }
+    #stage { width:100vw; height:90vh; display:block; }
+  </style>
 </head>
 <body>
-  <header class="bar">
+  <header>
     <h1>RubikApp</h1>
-    <div class="actions">
-      <label for="theme" class="sr">Tema</label>
-      <select id="theme" title="Tema">
-        <option value="classic">Classic</option>
-        <option value="erno">Erno</option>
-        <option value="dust">Dust</option>
-        <option value="camo">Camo</option>
-        <option value="rain">Rain</option>
-      </select>
-      <button id="btn-scramble">Scramble</button>
-      <button id="btn-reset">Reset</button>
-    </div>
+    <button id="btn-scramble">Scramble</button>
+    <button id="btn-reset">Reset</button>
   </header>
-  <main>
-    <div id="stage" aria-label="Cubo 3D"></div>
-  </main>
-  <footer>Sticker non illuminati • Ambient/Hemi light • Bake normals</footer>
+  <div id="stage"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/three@0.150.0/build/three.min.js"></script>
   <script src="app.js"></script>
