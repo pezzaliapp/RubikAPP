@@ -1,219 +1,305 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="it">
 <head>
-  <meta charset="UTF-8" />
-  <title>Rubik's Cube Simulator — 2D</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    :root{ --bg:#222; --panel:#2b2b2b; --text:#fff; --muted:#aaa; --btn:#fff; --btnText:#222; --grid:30px }
-    *{ box-sizing:border-box }
-    body{ margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg); color:var(--text) }
-    header{ padding:12px 16px; background:#0b5fff; font-weight:700 }
-    main{ max-width:880px; margin:0 auto; padding:16px }
-    #cube{ display:grid; grid-template-columns:auto auto; gap:18px; align-items:start }
-    .face-wrap{ display:flex; flex-direction:column; align-items:center }
-    .face-label{ margin:4px 0 6px; font-weight:700; letter-spacing:.5px }
-    .face{ display:grid; grid-template-columns:repeat(3, var(--grid)); gap:2px; background:#111; padding:2px; border-radius:6px }
-    .sticker{ width:var(--grid); height:var(--grid); border:1px solid #0006; border-radius:4px }
-    #controls{ margin-top:18px; background:var(--panel); padding:12px; border-radius:12px; display:flex; flex-wrap:wrap; gap:8px; align-items:center }
-    button{ appearance:none; border:0; border-radius:10px; padding:8px 12px; background:var(--btn); color:var(--btnText); font-weight:700; cursor:pointer; touch-action:manipulation }
-    button:active{ transform:translateY(1px) }
-    .group{ display:flex; gap:6px; align-items:center }
-    .grow{ flex:1 }
-    input[type="text"]{ width:100%; padding:8px 10px; border-radius:10px; border:1px solid #444; background:#111; color:#eee; font-size:14px }
-    small.muted{ color:var(--muted) }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RubikApp 3D — touch + tastiera</title>
+<meta name="theme-color" content="#0b5fff">
+<style>
+  :root{--bg:#1f2430;--panel:#0d1117;--text:#eef2ff}
+  *{box-sizing:border-box} html,body{height:100%;margin:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
+  header{position:sticky;top:0;z-index:10;background:#0b5fff;color:#fff;box-shadow:0 2px 10px #0004;padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  header h1{font-size:1.05rem;margin:0;margin-right:auto}
+  button{border:0;border-radius:10px;padding:8px 12px;background:#fff;color:#0b5fff;font-weight:700;cursor:pointer;touch-action:manipulation}
+  #stage{width:100%;height:calc(100vh - 230px);max-height:740px;background:#2a3142;border-radius:16px;margin:12px auto;position:relative;overflow:hidden;touch-action:none}
+  #hud{max-width:1100px;margin:0 auto 16px;padding:12px 14px;background:var(--panel);border-radius:12px}
+  #hud .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  input[type=text]{flex:1;min-width:240px;padding:8px 10px;border-radius:10px;border:1px solid #333;background:#111;color:#eee}
+  code{background:#111;padding:3px 6px;border-radius:8px}
+  footer{padding:8px 12px;text-align:center;color:#cfd6e6}
+  #diag{margin-top:8px;background:#111;border:1px solid #333;border-radius:8px;padding:8px;max-height:160px;overflow:auto;font:12px/1.4 ui-monospace,Menlo,monospace}
+</style>
 </head>
 <body>
-  <header>Rubik's Cube – Simulatore 2D (touch + tastiera + alg)</header>
+<header>
+  <h1>RubikApp 3D</h1>
+  <button id="btn-scramble">Scramble</button>
+  <button id="btn-reset">Reset</button>
+  <button id="btn-undo">Undo</button>
+  <button id="btn-redo">Redo</button>
+</header>
 
-  <main>
-    <div id="cube" aria-label="rete 2D del cubo"></div>
-
-    <div id="controls">
-      <div class="group">
-        <button onclick="doMove('U')">U</button>
-        <button onclick="doMove(`U'`)">U'</button>
-        <button onclick="doMove('U2')">U2</button>
-      </div>
-      <div class="group">
-        <button onclick="doMove('R')">R</button>
-        <button onclick="doMove(`R'`)">R'</button>
-        <button onclick="doMove('R2')">R2</button>
-      </div>
-      <div class="group">
-        <button onclick="doMove('F')">F</button>
-        <button onclick="doMove(`F'`)">F'</button>
-        <button onclick="doMove('F2')">F2</button>
-      </div>
-      <div class="group">
-        <button onclick="doMove('L')">L</button>
-        <button onclick="doMove(`L'`)">L'</button>
-        <button onclick="doMove('L2')">L2</button>
-      </div>
-      <div class="group">
-        <button onclick="doMove('B')">B</button>
-        <button onclick="doMove(`B'`)">B'</button>
-        <button onclick="doMove('B2')">B2</button>
-      </div>
-      <div class="group">
-        <button onclick="doMove('D')">D</button>
-        <button onclick="doMove(`D'`)">D'</button>
-        <button onclick="doMove('D2')">D2</button>
-      </div>
-
-      <div class="group grow" style="min-width:220px">
-        <input id="alg" type="text" placeholder="Algoritmo (es. R U R' U' F2)" />
-      </div>
-      <div class="group">
-        <button onclick="runAlg()">Esegui</button>
-        <button onclick="scramble()">Scramble</button>
-        <button onclick="resetCube()">Reset</button>
-      </div>
-      <div class="group"><small class="muted">Suggerimento: premi U,D,L,R,F,B da tastiera (con Shift/Alt per l’inversa).</small></div>
+<main>
+  <div id="stage" aria-label="cubo 3D"></div>
+  <div id="hud">
+    <div class="row">
+      <strong>Mosse:</strong> <span id="move-count">0</span>
+      <code id="move-alg" style="white-space:nowrap;overflow:auto;max-width:70vw"></code>
     </div>
+    <div class="row">
+      <input id="alg" type="text" placeholder="Algoritmo (es. R U R' U' F2)">
+      <button id="btn-run">Esegui</button>
+      <span style="color:#9fb1d1">Tasti: U D L R F B (+ ' e 2). Touch: trascina su una faccia per ruotare lo strato; trascina sullo sfondo per ruotare la vista.</span>
+    </div>
+    <pre id="diag"></pre>
+  </div>
+</main>
 
-    <p id="touchInfo"><small class="muted">Swipe destra/sinistra sull’area del cubo per ruotare la faccia Front (F).</small></p>
-  </main>
+<footer><small>Three.js via CDN. Nessun service worker. Stickers anti z-fighting.</small></footer>
 
-  <script>
-    // === Modello 2D =========================================================
-    const colors = {U:'white', R:'red', F:'green', D:'yellow', L:'orange', B:'blue'};
-    let cube = {
-      U: Array(9).fill('U'),
-      R: Array(9).fill('R'),
-      F: Array(9).fill('F'),
-      D: Array(9).fill('D'),
-      L: Array(9).fill('L'),
-      B: Array(9).fill('B'),
-    };
+<!-- loader three.js con fallback -->
+<script>
+const diag = document.getElementById('diag'); function log(){const s=[].slice.call(arguments).join(' ');diag.textContent+=s+"\n";console.log.apply(console,arguments)}
+window.addEventListener('error',e=>log('JS ERROR:',e.message,'@',e.filename, e.lineno, e.colno));
+(async function(){
+  const CDNS=[
+    "https://cdn.jsdelivr.net/npm/three@0.150.0/build/three.min.js",
+    "https://unpkg.com/three@0.150.0/build/three.min.js",
+    "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.150.0/three.min.js"
+  ];
+  let ok=false;
+  for(const url of CDNS){
+    try{
+      await new Promise((res,rej)=>{const s=document.createElement('script');s.src=url;s.onload=res;s.onerror=()=>rej(url);document.head.appendChild(s);});
+      if(window.THREE){log('THREE r'+THREE.REVISION+' OK'); ok=true; break;}
+    }catch(e){log('CDN fallita:',e)}
+  }
+  if(!ok){log('Impossibile caricare Three.js'); return;}
+  startApp();
+})();
+</script>
 
-    function drawCube(){
-      const cubeEl = document.getElementById('cube');
-      cubeEl.innerHTML = '';
-      ['U','L','F','R','B','D'].forEach(face=>{
-        const wrap = document.createElement('div');
-        wrap.className = 'face-wrap';
-        const lab = document.createElement('div');
-        lab.className = 'face-label';
-        lab.textContent = face;
-        const grid = document.createElement('div');
-        grid.className = 'face';
-        cube[face].forEach(st=>{
-          const s = document.createElement('div');
-          s.className = 'sticker';
-          s.style.background = colors[st];
-          grid.appendChild(s);
-        });
-        wrap.appendChild(lab);
-        wrap.appendChild(grid);
-        cubeEl.appendChild(wrap);
-      });
-    }
+<!-- app 3D -->
+<script>
+function startApp(){
+'use strict';
 
-    function resetCube(){
-      cube = { U:Array(9).fill('U'), R:Array(9).fill('R'),
-               F:Array(9).fill('F'), D:Array(9).fill('D'),
-               L:Array(9).fill('L'), B:Array(9).fill('B') };
-      drawCube();
-    }
+/* === colori sticker === */
+const STICKER={U:0xffffff,D:0xffd000,F:0x00a74a,B:0x2f6ee6,L:0xff6c00,R:0xd80027};
 
-    // === Rotazioni base =====================================================
-    const TOP=[0,1,2], BOTTOM=[6,7,8], LEFT=[0,3,6], RIGHT=[2,5,8];
+/* === scena === */
+const stage=document.getElementById('stage');
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x2a3142);
 
-    function rotateFace(face, dir=1){
-      const a = cube[face].slice();
-      if(dir===1)  cube[face]=[a[6],a[3],a[0], a[7],a[4],a[1], a[8],a[5],a[2]];
-      if(dir===-1) cube[face]=[a[2],a[5],a[8], a[1],a[4],a[7], a[0],a[3],a[6]];
-    }
-    function take(face, idxs, rev=false){ const v=idxs.map(i=>cube[face][i]); return rev?v.reverse():v; }
-    function put(face, idxs, vals){ for(let i=0;i<idxs.length;i++) cube[face][idxs[i]] = vals[i]; }
-    function cycleRing(ring, dir=1){
-      // ring = [{f,idx,rev?}, ... x4]
-      const vals = ring.map(x=>take(x.f,x.idx,!!x.rev));
-      const from = vals.map((_,i)=>vals[(i-(dir===1?1:3)+4)%4]); // rotate source
-      for(let i=0;i<4;i++) put(ring[i].f, ring[i].idx, from[i]);
-    }
+const camera=new THREE.PerspectiveCamera(45,1,0.1,100);
+camera.position.set(4.2,3.8,5.8); camera.lookAt(0,0,0);
 
-    function move(face, dir=1){
-      dir = dir>=0 ? 1 : -1;
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+renderer.setSize(stage.clientWidth, stage.clientHeight);
+stage.appendChild(renderer.domElement);
 
-      if(face==='U'){
-        rotateFace('U', dir);
-        cycleRing([{f:'F',idx:TOP},{f:'R',idx:TOP},{f:'B',idx:TOP},{f:'L',idx:TOP}], dir);
-      } else if(face==='D'){
-        rotateFace('D', dir);
-        cycleRing([{f:'F',idx:BOTTOM},{f:'L',idx:BOTTOM},{f:'B',idx:BOTTOM},{f:'R',idx:BOTTOM}], dir);
-      } else if(face==='R'){
-        rotateFace('R', dir);
-        cycleRing([{f:'F',idx:RIGHT},{f:'U',idx:RIGHT},{f:'B',idx:LEFT,rev:true},{f:'D',idx:RIGHT}], dir);
-      } else if(face==='L'){
-        rotateFace('L', dir);
-        cycleRing([{f:'F',idx:LEFT},{f:'D',idx:LEFT},{f:'B',idx:RIGHT,rev:true},{f:'U',idx:LEFT}], dir);
-      } else if(face==='F'){
-        rotateFace('F', dir);
-        cycleRing([{f:'U',idx:BOTTOM},{f:'R',idx:LEFT},{f:'D',idx:TOP,rev:true},{f:'L',idx:RIGHT}], dir);
-      } else if(face==='B'){
-        rotateFace('B', dir);
-        cycleRing([{f:'U',idx:TOP},{f:'L',idx:LEFT},{f:'D',idx:BOTTOM,rev:true},{f:'R',idx:RIGHT}], dir);
-      }
+scene.add(new THREE.AmbientLight(0xffffff,.9));
+const key=new THREE.DirectionalLight(0xffffff,.8); key.position.set(4,7,6); scene.add(key);
 
-      drawCube();
-    }
+function onResize(){const w=stage.clientWidth, h=stage.clientHeight; camera.aspect=w/h; camera.updateProjectionMatrix(); renderer.setSize(w,h); renderer.render(scene,camera);}
+window.addEventListener('resize', onResize, {passive:true});
 
-    // === Comandi utente =====================================================
-    function doMove(tok){
-      // tok: "R", "R'", "R2"
-      const base = tok[0];
-      const prime = tok.includes("'");
-      const dbl   = tok.includes('2');
-      if(dbl){ move(base, +1); move(base, +1); }
-      else   { move(base, prime ? -1 : +1); }
-    }
+/* === util === */
+const nearly=(a,b)=>Math.abs(a-b)<1e-4;
+const snap90=r=>Math.round(r/(Math.PI/2))*(Math.PI/2);
 
-    function parseAlg(s){
-      return s.trim().toUpperCase().split(/\s+/).filter(Boolean);
-    }
-    async function runAlg(){
-      const s = document.getElementById('alg').value || '';
-      const seq = parseAlg(s);
-      for(const t of seq){ doMove(t); await new Promise(r=>setTimeout(r,60)); }
-    }
+/* === cubo === */
+const size=0.98, gap=0.012;
+const geo=new THREE.BoxGeometry(size,size,size);
+const root=new THREE.Group(); scene.add(root);
+const cubelets=[];
 
-    function scramble(){
-      const faces=['U','D','L','R','F','B'];
-      let last=null, seq=[];
-      for(let i=0;i<20;i++){
-        let f; do{ f = faces[(Math.random()*6)|0]; } while(f===last); last=f;
-        const mod = Math.random()<0.33 ? "'" : (Math.random()<0.5 ? '2' : '');
-        seq.push(f+mod);
-      }
-      document.getElementById('alg').value = seq.join(' ');
-      runAlg();
-    }
+function makeSticker(color, axis, sign){
+  const g=new THREE.PlaneGeometry(0.965,0.965);
+  const m=new THREE.MeshBasicMaterial({
+    color, side:THREE.DoubleSide,
+    depthTest:true, depthWrite:false,
+    polygonOffset:true, polygonOffsetFactor:-6, polygonOffsetUnits:-6
+  });
+  const s=new THREE.Mesh(g,m); s.renderOrder=3;
+  const d=0.515;
+  if(axis==='x'){ s.position.x=sign*d; s.rotation.y=-sign*Math.PI/2; }
+  if(axis==='y'){ s.position.y=sign*d; s.rotation.x= sign*Math.PI/2; }
+  if(axis==='z'){ s.position.z=sign*d; if(sign<0) s.rotation.y=Math.PI; }
+  return s;
+}
 
-    // Tastiera: U D L R F B (+ Shift/Alt = antioraria)
-    window.addEventListener('keydown', e=>{
-      const k = e.key.toUpperCase();
-      if(!'UDLRFB'.includes(k)) return;
-      doMove(k + (e.shiftKey||e.altKey ? "'" : ''));
+function addCubelet(i,j,k){
+  const plastic=new THREE.MeshStandardMaterial({color:0x20232c,metalness:0.1,roughness:0.6});
+  const mesh=new THREE.Mesh(geo,[plastic,plastic,plastic,plastic,plastic,plastic].map(m=>m.clone()));
+  const s=size+gap;
+  mesh.position.set(i*s,j*s,k*s);
+  mesh.userData.coord=new THREE.Vector3(i,j,k);
+  if(i=== 1) mesh.add(makeSticker(STICKER.R,'x',+1));
+  if(i===-1) mesh.add(makeSticker(STICKER.L,'x',-1));
+  if(j=== 1) mesh.add(makeSticker(STICKER.U,'y',+1));
+  if(j===-1) mesh.add(makeSticker(STICKER.D,'y',-1));
+  if(k=== 1) mesh.add(makeSticker(STICKER.F,'z',+1));
+  if(k===-1) mesh.add(makeSticker(STICKER.B,'z',-1));
+  root.add(mesh); cubelets.push(mesh);
+}
+
+function buildSolved(){
+  while(root.children.length) root.remove(root.children[0]);
+  cubelets.length=0;
+  for(let i=-1;i<=1;i++) for(let j=-1;j<=1;j++) for(let k=-1;k<=1;k++) addCubelet(i,j,k);
+  log('Cubelets:', cubelets.length);
+}
+
+/* === input: orbit vs rotazione layer === */
+let isOrbit=false, lastX=0,lastY=0, rotating=false, press=null;
+function orbitStart(x,y){isOrbit=true;lastX=x;lastY=y}
+function orbitMove(x,y){ if(!isOrbit||rotating) return; const dx=(x-lastX)/120, dy=(y-lastY)/120; root.rotation.y+=dx; root.rotation.x+=dy; lastX=x; lastY=y; }
+function orbitEnd(){isOrbit=false}
+
+const ray=new THREE.Raycaster(), ndc=new THREE.Vector2();
+function hitsAt(cx,cy){
+  const r=renderer.domElement.getBoundingClientRect();
+  ndc.x=((cx-r.left)/r.width)*2-1; ndc.y= -((cy-r.top)/r.height)*2+1;
+  ray.setFromCamera(ndc,camera);
+  const raw=ray.intersectObjects(root.children,true);
+  if(!raw.length) return [];
+  return raw.map(h=>{let o=h.object; while(o && o.parent && o.parent!==root){o=o.parent} return {...h,object:o};});
+}
+
+function onDown(e){ const t=e.touches?e.touches[0]:e; const hs=hitsAt(t.clientX,t.clientY); if(hs.length){press={hit:hs[0],x:t.clientX,y:t.clientY}} else {orbitStart(t.clientX,t.clientY)} }
+function onMove(e){ const t=e.touches?e.touches[0]:e; if(isOrbit&&!rotating){orbitMove(t.clientX,t.clientY); return} if(!press||rotating) return; const dx=t.clientX-press.x, dy=t.clientY-press.y; if(Math.hypot(dx,dy)>18){ rotateFromGesture(press.hit,dx,dy); press=null; } }
+function onUp(){orbitEnd(); press=null}
+
+renderer.domElement.addEventListener('mousedown', onDown);
+window.addEventListener('mousemove', onMove);
+window.addEventListener('mouseup', onUp);
+renderer.domElement.addEventListener('touchstart', onDown,{passive:true});
+window.addEventListener('touchmove', onMove,{passive:true});
+window.addEventListener('touchend', onUp);
+
+/* === rotazioni layer === */
+const moveAlgEl=document.getElementById('move-alg');
+const moveCountEl=document.getElementById('move-count');
+let history=[], future=[], moveAlg=[], moveCount=0;
+
+function pushHistory(){
+  const snap=cubelets.map(m=>({x:m.position.x,y:m.position.y,z:m.position.z,rx:m.rotation.x,ry:m.rotation.y,rz:m.rotation.z,cx:m.userData.coord.x,cy:m.userData.coord.y,cz:m.userData.coord.z}));
+  history.push(snap); if(history.length>200) history.shift(); future.length=0;
+}
+function restoreState(snap){
+  cubelets.forEach((m,i)=>{const s=snap[i]; m.position.set(s.x,s.y,s.z); m.rotation.set(s.rx,s.ry,s.rz); m.userData.coord.set(s.cx,s.cy,s.cz); root.attach(m);});
+  renderer.render(scene,camera);
+}
+function addMoveNotation(n){ moveAlg.push(n); moveCount++; moveAlgEl.textContent=moveAlg.join(' '); moveCountEl.textContent=String(moveCount); }
+
+function rotateLayer(axisChar, layerCoord, sign, record){
+  if(record===undefined) record=true;
+  if(rotating) return; rotating=true; if(record) pushHistory();
+
+  const axis = axisChar==='X'? new THREE.Vector3(1,0,0) : axisChar==='Y'? new THREE.Vector3(0,1,0) : new THREE.Vector3(0,0,1);
+  const pick = axisChar==='X'? m=>nearly(m.userData.coord.x,layerCoord) : axisChar==='Y'? m=>nearly(m.userData.coord.y,layerCoord) : m=>nearly(m.userData.coord.z,layerCoord);
+
+  const group=new THREE.Group(), layer=[];
+  cubelets.forEach(m=>{ if(pick(m)){ layer.push(m); group.attach(m);} });
+  scene.add(group);
+
+  const target=(Math.PI/2)*sign, dur=200, t0=performance.now();
+  function anim(now){
+    const t=Math.min(1,(now-t0)/dur);
+    group.rotation.x=axis.x*target*t; group.rotation.y=axis.y*target*t; group.rotation.z=axis.z*target*t;
+    renderer.render(scene,camera);
+    if(t<1) requestAnimationFrame(anim); else bake();
+  }
+  requestAnimationFrame(anim);
+
+  function bake(){
+    const s=size+gap;
+    layer.forEach(m=>{
+      m.applyMatrix4(group.matrix);
+      m.position.set(Math.round(m.position.x/s)*s, Math.round(m.position.y/s)*s, Math.round(m.position.z/s)*s);
+      m.userData.coord.set(Math.round(m.position.x/s), Math.round(m.position.y/s), Math.round(m.position.z/s));
+      m.rotation.x=snap90(m.rotation.x); m.rotation.y=snap90(m.rotation.y); m.rotation.z=snap90(m.rotation.z);
     });
+    layer.forEach(m=>root.attach(m)); scene.remove(group);
+    rotating=false; renderer.render(scene,camera);
+  }
+}
 
-    // Swipe touch sull'area del cubo → F / F'
-    let startX=null;
-    const cubeDiv=document.getElementById('cube');
-    cubeDiv.addEventListener('touchstart', e=>{
-      if(e.touches.length===1) startX=e.touches[0].clientX;
-    }, {passive:true});
-    cubeDiv.addEventListener('touchend', e=>{
-      if(startX===null) return;
-      const dx = e.changedTouches[0].clientX - startX;
-      if(Math.abs(dx)>30) doMove(dx>0?'F':"F'");
-      startX=null;
-    });
+function rotateFromGesture(hit,dx,dy){
+  if(rotating) return;
+  const n=hit.face.normal.clone().applyMatrix3(new THREE.Matrix3().getNormalMatrix(hit.object.matrixWorld)).normalize();
+  const dom=Math.abs(dx)>Math.abs(dy)?'x':'y';
+  let axisChar;
+  if(Math.abs(n.z)>0.9) axisChar=(dom==='x')?'Y':'X';
+  else if(Math.abs(n.x)>0.9) axisChar=(dom==='x')?'Y':'Z';
+  else axisChar=(dom==='x')?'Z':'X';
+  const sign=(dom==='x')?(dx>0?1:-1):(dy<0?1:-1);
+  const c=hit.object.userData.coord;
+  const layerCoord= axisChar==='X'? c.x : axisChar==='Y'? c.y : c.z;
 
-    // Init
-    drawCube();
-  </script>
+  // notazione approssimata per la faccia esterna
+  let notation='?';
+  if(axisChar==='Y'&&nearly(layerCoord,+1)) notation=(sign===-1)?'U':"U'";
+  else if(axisChar==='Y'&&nearly(layerCoord,-1)) notation=(sign===+1)?'D':"D'";
+  else if(axisChar==='X'&&nearly(layerCoord,+1)) notation=(sign===+1)?'R':"R'";
+  else if(axisChar==='X'&&nearly(layerCoord,-1)) notation=(sign===-1)?'L':"L'";
+  else if(axisChar==='Z'&&nearly(layerCoord,+1)) notation=(sign===+1)?'F':"F'";
+  else if(axisChar==='Z'&&nearly(layerCoord,-1)) notation=(sign===-1)?'B':"B'";
+  addMoveNotation(notation);
+
+  rotateLayer(axisChar, layerCoord, sign, true);
+}
+
+/* === tastiera & parser algoritmo === */
+function parseAlg(s){return s.trim().toUpperCase().split(/\s+/).filter(Boolean)}
+async function runAlgStr(s){
+  const tok=parseAlg(s);
+  for(const t of tok){
+    const base=t[0], mod=t.slice(1);
+    const dbl=mod.includes('2'), prime=mod.includes("'");
+    const reps=dbl?2:1;
+    for(let r=0;r<reps;r++){
+      if(base==='U') rotateLayer('Y',+1, prime?-1:+1,true);
+      else if(base==='D') rotateLayer('Y',-1, prime?+1:-1,true);
+      else if(base==='R') rotateLayer('X',+1, prime?+1:-1,true);
+      else if(base==='L') rotateLayer('X',-1, prime?-1:+1,true);
+      else if(base==='F') rotateLayer('Z',+1, prime?+1:-1,true);
+      else if(base==='B') rotateLayer('Z',-1, prime?-1:+1,true);
+      addMoveNotation(base+(dbl?'2':(prime?"'":'')));
+      await new Promise(r=>setTimeout(r, 10));
+    }
+  }
+}
+window.addEventListener('keydown', e=>{
+  const k=e.key.toUpperCase(); if(!'UDLRFB'.includes(k)) return;
+  const prime=e.getModifierState('Shift')||e.getModifierState('Alt')||e.getModifierState('Meta');
+  runAlgStr(k+(prime?"'":''));
+});
+
+/* === pulsanti === */
+document.getElementById('btn-reset').addEventListener('click', ()=>{
+  root.rotation.set(0,0,0); buildSolved();
+  history=[]; future=[]; moveAlg=[]; moveCount=0; moveAlgEl.textContent=''; moveCountEl.textContent='0';
+  renderer.render(scene,camera);
+});
+document.getElementById('btn-scramble').addEventListener('click', async ()=>{
+  const faces=['U','D','L','R','F','B']; let last=null, seq=[];
+  for(let i=0;i<20;i++){ let f; do{f=faces[(Math.random()*6)|0]}while(f===last); last=f; const mod=Math.random()<.33?"'":(Math.random()<.5?'2':''); seq.push(f+mod) }
+  await runAlgStr(seq.join(' '));
+});
+document.getElementById('btn-undo').addEventListener('click', ()=>{
+  if(!history.length) return; const snap=history.pop();
+  const curr=cubelets.map(m=>({x:m.position.x,y:m.position.y,z:m.position.z,rx:m.rotation.x,ry:m.rotation.y,rz:m.rotation.z,cx:m.userData.coord.x,cy:m.userData.coord.y,cz:m.userData.coord.z}));
+  future.push(curr); restoreState(snap);
+  if(moveAlg.length){moveAlg.pop(); moveCount=Math.max(0,moveCount-1)}; moveAlgEl.textContent=moveAlg.join(' '); moveCountEl.textContent=String(moveCount);
+});
+document.getElementById('btn-redo').addEventListener('click', ()=>{
+  if(!future.length) return; const snap=future.pop();
+  history.push(cubelets.map(m=>({x:m.position.x,y:m.position.y,z:m.position.z,rx:m.rotation.x,ry:m.rotation.y,rz:m.rotation.z,cx:m.userData.coord.x,cy:m.userData.coord.y,cz:m.userData.coord.z})));
+  restoreState(snap);
+});
+document.getElementById('btn-run').addEventListener('click', ()=>runAlgStr(document.getElementById('alg').value||''));
+
+/* === avvio === */
+buildSolved(); onResize();
+(function loop(){ renderer.render(scene,camera); requestAnimationFrame(loop) })();
+log('Init ok');
+}
+</script>
 </body>
 </html>
