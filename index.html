@@ -3,13 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>RubikApp 3D — Pro (ASCII)</title>
+  <title>RubikApp 3D — layer reali</title>
   <meta name="theme-color" content="#0b5fff">
   <link rel="icon" href="icons/icon-192.png">
   <link rel="stylesheet" href="style.css">
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <meta http-equiv="Pragma" content="no-cache">
-  <meta http-equiv="Expires" content="0">
 </head>
 <body>
 <header class="topbar">
@@ -17,61 +14,17 @@
   <nav class="controls">
     <button id="btn-scramble">Scramble</button>
     <button id="btn-reset">Reset</button>
-    <button id="btn-undo">Undo</button>
-    <button id="btn-redo">Redo</button>
-    <button id="btn-copy">Copy Alg</button>
   </nav>
 </header>
 <main>
   <div id="stage"></div>
-  <div id="hud" class="hud">
-    <div><strong>Mosse:</strong> <span id="move-count">0</span></div>
-    <div class="alg"><code id="move-alg"></code></div>
-    <p class="hint">Touch: trascina su una faccia per ruotare lo strato. Tasti: U D L R F B (+ ' o 2).</p>
-    <pre id="diag" class="diag"></pre>
-  </div>
+  <p class="hint">Tocca e trascina una faccia per ruotare lo strato. Trascina sullo sfondo per ruotare la vista.</p>
 </main>
 <footer>
-  <small>ASCII-only JS. Fallback Three.js. Nessun service worker.</small>
+  <small>Three.js 0.150.0 via CDN. Aggiungeremo PWA offline in seguito.</small>
 </footer>
-
-<script>
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations?.().then(list => list.forEach(r => r.unregister().catch(()=>{})));
-}
-const diag = document.getElementById('diag');
-function log(){ const s=[].slice.call(arguments).join(' '); diag.textContent += s + '\n'; console.log.apply(console, arguments); }
-window.addEventListener('error', function(e){ log('JS ERROR:', e.message, '@', (e.filename||''), (e.lineno||''), (e.colno||'')); });
-</script>
-
-<script>
-(function(){
-  var CDNS=[
-    "https://cdn.jsdelivr.net/npm/three@0.150.0/build/three.min.js",
-    "https://unpkg.com/three@0.150.0/build/three.min.js",
-    "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.150.0/three.min.js"
-  ];
-  function loadScript(src){
-    return new Promise(function(res, rej){
-      var s=document.createElement('script'); s.src=src; s.async=true;
-      s.onload=function(){ res(src); }; s.onerror=function(){ rej(new Error('load error '+src)); };
-      document.head.appendChild(s);
-    });
-  }
-  (async function(){
-    var ok=false;
-    for (var i=0;i<CDNS.length;i++){
-      var url=CDNS[i];
-      try{ log('Carico Three:', url); await loadScript(url); if(window.THREE){ log('THREE r'+THREE.REVISION+' OK'); ok=true; break; } }
-      catch(e){ log(e.message); }
-    }
-    if(!ok){ log('ERRORE: impossibile caricare Three.js'); return; }
-    var s=document.createElement('script'); s.src='app.js?'+Date.now(); s.async=true;
-    s.onload=function(){ log('app.js caricato'); };
-    s.onerror=function(){ log('ERRORE: app.js non caricato'); };
-    document.body.appendChild(s);
-  })();
-})();
-</script>
+<!-- CDN stabile -->
+<script src="https://unpkg.com/three@0.150.0/build/three.min.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
