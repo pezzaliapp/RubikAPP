@@ -1,106 +1,61 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>README — Il Cubo di Rubik PWA</title>
+  <link rel="stylesheet" href="styles.css" />
   <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-      line-height: 1.6;
-      margin: 0;
-      padding: 0;
-      background: #fafafa;
-      color: #222;
-    }
-    header {
-      background: #0b5fff;
-      color: #fff;
-      padding: 1rem;
-      text-align: center;
-    }
-    header img {
-      max-width: 80px;
-      margin-bottom: 0.5rem;
-    }
-    main {
-      max-width: 900px;
-      margin: 2rem auto;
-      padding: 2rem;
-      background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-    }
-    h1, h2, h3 {
-      color: #0b5fff;
-    }
-    blockquote {
-      background: #f5f7ff;
-      border-left: 4px solid #0b5fff;
-      margin: 1rem 0;
-      padding: 0.8rem 1rem;
-      color: #333;
-    }
-    ul {
-      padding-left: 1.2rem;
-    }
-    code {
-      background: #f3f3f3;
-      padding: 0.2rem 0.4rem;
-      border-radius: 4px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    }
-    footer {
-      text-align: center;
-      font-size: 0.9rem;
-      padding: 1.5rem;
-      margin-top: 2rem;
-      color: #555;
-      border-top: 1px solid #eee;
-    }
-    .nowrap { white-space: nowrap; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; margin:0; background:#f9f9f9; color:#222; }
+    header { text-align:center; padding:32px 16px; background:#007bff; color:white; }
+    header img { width:100px; height:auto; margin-bottom:12px; }
+    header h1 { margin:0; font-size:1.6rem; }
+    header p { margin:4px 0 0; font-size:0.95rem; }
+    main { max-width:800px; margin:32px auto; padding:0 16px; line-height:1.6; }
+    h2 { color:#007bff; margin-top:32px; }
+    .note { background:#eef5ff; padding:12px; border-left:4px solid #007bff; font-size:0.95rem; }
+    footer { text-align:center; margin:48px 0 16px; font-size:0.9rem; color:#555; }
+    .nowrap { white-space:nowrap; }
   </style>
 </head>
 <body>
   <header>
-    <img src="icons/apple-touch-icon.png" alt="Icona App">
-    <h1>🧩 Il Cubo di Rubik — PWA</h1>
-    <p><strong>© 2016–2025 pezzaliAPP — Tutti i diritti riservati</strong></p>
+    <img src="icons/apple-touch-icon.png" alt="Icona Cubo">
+    <h1>IL CUBO</h1>
+    <p>Una Progressive Web App di <span class="nowrap">pezzaliAPP.com</span></p>
+    <small>© 2016–2025 Alessandro Pezzali / pezzaliAPP — Tutti i diritti riservati</small>
   </header>
 
   <main>
     <h2>📖 Panoramica</h2>
     <p>
-      Questa <strong>Progressive Web App (PWA)</strong> dedicata al <strong>Cubo di Rubik</strong> 
-      è il risultato di un percorso personale e professionale iniziato nel <strong>2017</strong> 
-      e sviluppato nel corso di quasi dieci anni, con numerose iterazioni tecniche e grafiche.
+      Questa <b>Progressive Web App (PWA)</b> dedicata al <b>Cubo di Rubik</b> è il risultato di un percorso personale e
+      professionale iniziato nel <b>2017</b> e sviluppato nel corso di quasi dieci anni, con numerose iterazioni tecniche e grafiche.
     </p>
     <p>
-      Il progetto nasce dopo un “inciampo” di <strong>salute del 03 novembre 2016</strong>: 
-      in quel momento un collega mi regalò un <strong>Cubo di Rubik</strong> come stimolo per reagire, 
-      mantenere la <strong>dopamina</strong> attiva e rimettere in moto la mente.  
+      Il progetto nasce dopo un “inciampo” di <b>salute del 03 novembre 2016</b>: in quel momento un collega mi regalò un
+      <b>Cubo di Rubik</b> come stimolo per reagire, mantenere la <b>dopamina</b> attiva e rimettere in moto la mente.
       Da lì è iniziato un viaggio fatto di prove, errori, studio e crescita nel coding.
     </p>
-    <blockquote>
-      ℹ️ <strong>Nota</strong>: online possono esistere grafiche <em>simili</em> perché ispirate o rese possibili 
-      da <strong>librerie pubbliche</strong>.  
-      Il codice applicativo di questa PWA resta <strong>proprietario</strong>: non è open source.
-    </blockquote>
+    <div class="note">
+      ℹ️ <b>Nota</b>: online possono esistere grafiche <i>simili</i> perché ispirate o rese possibili da <b>librerie pubbliche</b>.  
+      Il codice applicativo di questa PWA resta <b>proprietario</b>: non è open source.
+    </div>
 
     <h2>🎯 Obiettivi</h2>
     <ul>
-      <li>🎮 Offrire un <strong>gioco 3D</strong> del Cubo, accessibile via browser (desktop e mobile).</li>
-      <li>📲 Garantire <strong>installazione e utilizzo offline</strong> tramite PWA.</li>
-      <li>🎨 Sviluppare un’interfaccia <strong>usabile</strong> e graficamente curata.</li>
+      <li>🎮 Offrire un <b>gioco 3D</b> del Cubo, accessibile via browser (desktop e mobile).</li>
+      <li>📲 Garantire <b>installazione e utilizzo offline</b> tramite PWA.</li>
+      <li>🎨 Sviluppare un’interfaccia <b>usabile</b> e graficamente curata.</li>
       <li>📘 Documentare l’intero percorso tecnico come strumento di crescita personale.</li>
     </ul>
 
     <h2>🛠️ Tecnologie principali</h2>
     <ul>
-      <li>🟦 <strong>three.js</strong> → Rendering 3D del cubo e animazioni.</li>
-      <li>📦 <strong>PWA</strong> → Manifest, icone, supporto installazione, caching offline.</li>
-      <li>💻 <strong>JavaScript + CSS</strong> → UI minimale, controlli, timer e statistiche.</li>
-      <li>🐍 <strong>Python</strong> (storico) → Algoritmo di risoluzione iniziale, poi “addomesticato” al gioco puro.</li>
+      <li>🟦 <b>three.js</b> → Rendering 3D del cubo e animazioni.</li>
+      <li>📦 <b>PWA</b> → Manifest, icone, supporto installazione, caching offline.</li>
+      <li>💻 <b>JavaScript + CSS</b> → UI minimale, controlli, timer e statistiche.</li>
+      <li>🐍 <b>Python (storico)</b> → Algoritmo di risoluzione iniziale, poi adattato al gioco puro.</li>
     </ul>
 
     <h2>✨ Funzionalità</h2>
@@ -116,16 +71,12 @@
 
     <h2>📖 Storia del progetto</h2>
     <ul>
-      <li>2016 → Punto di partenza: un regalo (il Cubo di Rubik) come stimolo dopo un problema di salute.</li>
-      <li>2017 → Primo algoritmo di risoluzione sviluppato in Python.</li>
-      <li>2018–2020 → Esperimenti grafici con librerie open source.</li>
-      <li>2021–2024 → Conversione verso il gioco, varianti di colore, dimensioni e stili.</li>
-      <li>2025 → Versione PWA stabile, caching, interfaccia curata e guida integrata.</li>
+      <li><b>2016</b> → Punto di partenza: un regalo (il Cubo di Rubik) come stimolo dopo un problema di salute.</li>
+      <li><b>2017</b> → Primo algoritmo di risoluzione sviluppato in Python.</li>
+      <li><b>2018–2020</b> → Esperimenti grafici con librerie open source.</li>
+      <li><b>2021–2024</b> → Conversione verso il gioco, varianti di colore, dimensioni e stili.</li>
+      <li><b>2025</b> → Versione PWA stabile, caching, interfaccia curata e guida integrata.</li>
     </ul>
-    <p>
-      👉 Nota: online è possibile trovare grafiche simili, dovute all’uso di librerie 3D pubbliche.  
-      Il progetto, però, è stato adattato e personalizzato negli anni, diventando un vero percorso di crescita nel coding.
-    </p>
 
     <h2>🚀 Aggiornamenti futuri</h2>
     <ul>
@@ -138,35 +89,33 @@
     <h2>ℹ️ Note personali</h2>
     <p>
       Io il Cubo non lo so risolvere.  
-      Ed è proprio per questo che ho iniziato a scrivere codice: prima un algoritmo in Python, poi una simulazione “addomesticata” al puro gioco.  
+      Ed è proprio per questo che ho iniziato a scrivere codice: prima un algoritmo in Python, poi una simulazione “addomesticata” al puro gioco.
       Molti suggerimenti e modifiche sono arrivati dagli appassionati online: colori, dimensioni e piccoli dettagli che hanno reso il progetto più vivo.
     </p>
 
     <h2>📌 Crediti & Licenza</h2>
-    <p>👨‍💻 Autore: Alessandro Pezzali<br>
-       📅 Anni di sviluppo: 2016–2025<br>
-       ⚖️ <strong>Licenza d’Uso Limitata — Tutti i diritti riservati</strong></p>
-
-    <p>© 2016–2025 pezzaliAPP. Tutti i diritti riservati.<br>
-    Il software, i contenuti e gli asset grafici sono concessi <strong>esclusivamente per uso personale e non commerciale</strong> agli utenti finali, senza trasferimento di diritti.</p>
-
-    <h3>❌ Non è consentito, senza autorizzazione scritta:</h3>
     <ul>
-      <li>Copiare, modificare, distribuire o pubblicare il codice.</li>
-      <li>Utilizzare il progetto (o derivati) a fini commerciali.</li>
-      <li>Eseguire reverse engineering o rimuovere/alterare note di copyright.</li>
+      <li>👨‍💻 Autore: Alessandro Pezzali</li>
+      <li>📅 Anni di sviluppo: 2016–2025</li>
+      <li>⚖️ Licenza: Uso personale — Tutti i diritti riservati</li>
     </ul>
-
-    <h3>✅ È consentito:</h3>
-    <ul>
-      <li>L’uso personale, non commerciale, per giocare e testare l’app.</li>
-    </ul>
-
-    <p>📬 Per richieste specifiche: 🌐 <a href="https://www.pezzaliapp.com" target="_blank">pezzaliAPP.com</a></p>
+    <p>
+      © 2016–2025 Alessandro Pezzali / pezzaliAPP. Tutti i diritti riservati.  
+      Il software, i contenuti e gli asset grafici sono concessi esclusivamente in uso personale agli utenti finali, senza trasferimento di diritti.
+    </p>
+    <p>
+      ❌ Non è consentito, senza autorizzazione scritta:<br>
+      – Copiare, modificare, distribuire o pubblicare il codice.<br>
+      – Utilizzare il progetto (o derivati) a fini commerciali.<br>
+      – Eseguire reverse engineering o rimuovere/alterare note di copyright.<br><br>
+      ✅ È consentito:<br>
+      – L’uso personale, non commerciale, per giocare e testare l’app.
+    </p>
+    <p>📬 Per richieste specifiche: 🌐 <a href="https://www.pezzaliAPP.com">pezzaliAPP.com</a></p>
   </main>
 
   <footer>
-    © 2016–2025 pezzaliAPP — Tutti i diritti riservati • Una PWA di pezzaliAPP.com
+    © 2016–2025 Alessandro Pezzali / pezzaliAPP — Tutti i diritti riservati
   </footer>
 </body>
 </html>
