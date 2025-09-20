@@ -1,1 +1,23 @@
+All Rights Reserved License
 
+© 2016–2025 Alessandro Pezzali — Tutti i diritti riservati
+
+Il software, i contenuti e gli asset grafici inclusi in questo progetto
+("Software") sono concessi in uso personale e non commerciale agli utenti finali,
+senza trasferimento di diritti.
+
+È espressamente vietato, senza autorizzazione scritta dell’autore:
+- Copiare, modificare, unire, pubblicare, distribuire o ridistribuire il codice,
+  in tutto o in parte.
+- Utilizzare il Software, o derivati, per scopi commerciali o a fini di lucro.
+- Eseguire reverse engineering, decompilare o alterare note di copyright,
+  marchi o riferimenti di licenza.
+
+Il Software è fornito "così com’è", senza garanzie di alcun tipo, esplicite o implicite,
+incluse ma non limitate a garanzie di commerciabilità, idoneità per uno scopo
+specifico e non violazione. In nessun caso l’autore potrà essere ritenuto
+responsabile per eventuali reclami, danni o altre responsabilità, derivanti
+dall’uso del Software o in connessione con esso.
+
+Per richieste particolari, contattare:  
+🌐 https://www.pezzaliAPP.com
