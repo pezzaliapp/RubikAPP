@@ -1,9 +1,3 @@
-Perfetto 👍
-Ecco la versione aggiornata del README.md, con la parte della struttura del progetto rimossa e la sezione Licenza aggiornata al testo che avevamo discusso (MIT modificata in forma restrittiva: uso personale, diritti riservati).
-
-⸻
-
-
 # 🧩 Il Cubo di Rubik — PWA
 ![Icona App](icons/apple-touch-icon.png)
 
@@ -98,8 +92,3 @@ Il software, i contenuti e gli asset grafici sono concessi **esclusivamente in u
 - L’uso personale, non commerciale, per giocare e testare l’app.  
 
 📬 Per richieste specifiche: 🌐 [pezzaliAPP.com](https://www.pezzaliapp.com)  
-
-
-⸻
-
-Vuoi che ti prepari anche la versione readme.html aggiornata (uguale al README.md, ma in HTML formattato)?
