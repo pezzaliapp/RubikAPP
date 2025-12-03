@@ -83,15 +83,18 @@ Licenza d’Uso — Il Cubo di Rubik PWA
   </style>
   <!-- Manifest PWA -->
 <link rel="manifest" href="manifest.webmanifest" />
-  <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-17GYQ86797"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+   <!-- Google tag (gtag.js) – RubikAPP -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-17GYQ86797"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){ dataLayer.push(arguments); }
+    gtag('js', new Date());
 
-  gtag('config', 'G-17GYQ86797');
-</script>
+    // Tracciamo la pagina RubikAPP con il path corretto
+    gtag('config', 'G-17GYQ86797', {
+      page_path: '/RubikAPP/'
+    });
+  </script>
 </head>
 <body>
 
